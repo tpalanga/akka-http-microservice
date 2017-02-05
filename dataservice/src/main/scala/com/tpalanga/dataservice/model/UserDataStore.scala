@@ -1,6 +1,7 @@
 package com.tpalanga.dataservice.model
 
-import akka.actor.Actor
+import akka.actor.{Actor, Props}
+import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 import scala.collection.immutable.Seq
 
@@ -13,11 +14,19 @@ object UserDataStore {
   case class GetOne(id: UserId) extends Request
   case class AddOne(user: User) extends Request
 
-  sealed trait Response
-  case class All(users: Seq[User])
-  case class One(user: User)
-  case class NotFound(id: UserId)
+  case class AllUsers(users: Seq[User])
 
+  sealed trait OneUserResponse
+  case class OneUser(user: User) extends OneUserResponse
+  case class NotFound(id: UserId) extends OneUserResponse
+
+  object DataFormats extends DefaultJsonProtocol {
+    implicit val userFormat: RootJsonFormat[User] = jsonFormat2(User)
+    implicit val oneUserFormat: RootJsonFormat[OneUser] = jsonFormat1(OneUser)
+    implicit val allUsersFormat: RootJsonFormat[AllUsers] = jsonFormat1(AllUsers)
+  }
+
+  def props() = Props(new UserDataStore)
 }
 
 class UserDataStore extends Actor {
@@ -27,13 +36,13 @@ class UserDataStore extends Actor {
 
   override def receive: Receive = {
     case GetAll =>
-      sender() ! All(users.values.to[Seq])
+      sender() ! AllUsers(users.values.to[Seq])
 
     case GetOne(id) =>
-      sender() ! users.getOrElse(id, NotFound(id))
+      sender() ! users.get(id).map(OneUser).getOrElse(NotFound(id))
 
     case AddOne(user) =>
       users = users + (user.id -> user)
-      sender() ! One(user)
+      sender() ! OneUser(user)
   }
 }
