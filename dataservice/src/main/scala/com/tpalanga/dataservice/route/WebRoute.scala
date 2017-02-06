@@ -23,7 +23,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
         pathEnd {
           get {
             // get id
-            onComplete((userService ? UserDataStore.GetOne(id)).mapTo[UserDataStore.OneUserResponse]) {
+            onComplete((userService ? UserDataStore.GetOne(id)).mapTo[UserDataStore.GetUserResponse]) {
               case Success(oneUser: UserDataStore.OneUser) =>
                 complete(oneUser)
 
@@ -37,6 +37,40 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
                   complete(StatusCodes.InternalServerError, s"$msg: ${th.getMessage}")
                 }
             }
+          }
+        } ~
+        put {
+          // update
+          entity(as[UserDataStore.User]) { user =>
+            onComplete((userService ? UserDataStore.Update(user)).mapTo[UserDataStore.UpdateUserResponse]) {
+              case Success(oneUser: UserDataStore.OneUser) =>
+                complete(oneUser)
+
+              case Success(UserDataStore.NotFound(_)) =>
+                complete(StatusCodes.NotFound, s"User with ID $id not found")
+
+              case Failure(th) =>
+                extractLog { log =>
+                  val msg = s"Updating user $user failed"
+                  log.error(th, msg)
+                  complete(StatusCodes.InternalServerError, s"$msg: ${th.getMessage}")
+                }
+            }
+          }
+
+        } ~
+        delete {
+          // delete
+          onComplete((userService ? UserDataStore.Delete(id)).mapTo[UserDataStore.Deleted]) {
+            case Success(_) =>
+              complete("Deleted")
+
+            case Failure(th) =>
+              extractLog { log =>
+                val msg = s"Deleting user with ID $id failed"
+                log.error(th, msg)
+                complete(StatusCodes.InternalServerError, s"$msg: ${th.getMessage}")
+              }
           }
         }
       } ~
@@ -59,8 +93,8 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
           // create
           entity(as[UserDataStore.User]) { user =>
             onComplete((userService ? UserDataStore.AddOne(user)).mapTo[UserDataStore.OneUser]) {
-              case Success(_) =>
-                complete(StatusCodes.Created)
+              case Success(oneUser) =>
+                complete(StatusCodes.Created, oneUser)
 
               case Failure(th) =>
                 extractLog { log =>
