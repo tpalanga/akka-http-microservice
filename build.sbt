@@ -14,7 +14,8 @@ val commonDependencies = Seq (
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion
+  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
+  "io.spray" %%  "spray-json" % "1.3.3"
 )
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % "test",
@@ -34,5 +35,12 @@ lazy val dataservice = project.
     name := "dataservice",
     commonSettings,
     libraryDependencies ++= commonDependencies
+  )
+
+lazy val dataserviceTest = project.
+  settings(
+    name := "dataserviceTest",
+    commonSettings,
+    libraryDependencies ++=  commonDependencies ++ testingDependencies
   )
 
