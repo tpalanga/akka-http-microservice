@@ -25,7 +25,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
             // get id
             onComplete((userService ? UserDataStore.GetOne(id)).mapTo[UserDataStore.GetUserResponse]) {
               case Success(oneUser: UserDataStore.OneUser) =>
-                complete(oneUser)
+                complete(oneUser.user)
 
               case Success(UserDataStore.NotFound(_)) =>
                 complete(StatusCodes.NotFound, s"User with ID $id not found")
@@ -44,7 +44,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
           entity(as[UserDataStore.User]) { user =>
             onComplete((userService ? UserDataStore.Update(user)).mapTo[UserDataStore.UpdateUserResponse]) {
               case Success(oneUser: UserDataStore.OneUser) =>
-                complete(oneUser)
+                complete(oneUser.user)
 
               case Success(UserDataStore.NotFound(_)) =>
                 complete(StatusCodes.NotFound, s"User with ID $id not found")
@@ -79,7 +79,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
           // list
           onComplete((userService ? UserDataStore.GetAll).mapTo[UserDataStore.AllUsers]) {
             case Success(allUsers) =>
-              complete(allUsers)
+              complete(allUsers.users)
 
             case Failure(th) =>
               extractLog { log =>
@@ -91,10 +91,10 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
         } ~
         post {
           // create
-          entity(as[UserDataStore.User]) { user =>
+          entity(as[UserDataStore.NewUser]) { user =>
             onComplete((userService ? UserDataStore.AddOne(user)).mapTo[UserDataStore.OneUser]) {
               case Success(oneUser) =>
-                complete(StatusCodes.Created, oneUser)
+                complete(StatusCodes.Created, oneUser.user)
 
               case Failure(th) =>
                 extractLog { log =>

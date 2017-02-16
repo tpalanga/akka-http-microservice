@@ -7,12 +7,18 @@ import scala.collection.immutable.Seq
 
 object UserDataStore {
   type UserId = String
+
+  object UserX {
+    def apply(id: UserId, newUser: NewUser): User =
+      User(id, newUser.name)
+  }
   case class User(id: UserId, name: String)
+  case class NewUser(name: String)
 
   sealed trait Request
   case object GetAll extends Request
   case class GetOne(id: UserId) extends Request
-  case class AddOne(user: User) extends Request
+  case class AddOne(user: NewUser) extends Request
   case class Update(user: User) extends Request
   case class Delete(id: UserId) extends Request
 
@@ -27,11 +33,14 @@ object UserDataStore {
 
   object DataFormats extends DefaultJsonProtocol {
     implicit val userFormat: RootJsonFormat[User] = jsonFormat2(User)
+    implicit val newUserFormat: RootJsonFormat[NewUser] = jsonFormat1(NewUser)
     implicit val oneUserFormat: RootJsonFormat[OneUser] = jsonFormat1(OneUser)
     implicit val allUsersFormat: RootJsonFormat[AllUsers] = jsonFormat1(AllUsers)
   }
 
   def props() = Props(new UserDataStore)
+
+  def newUUID(): String = java.util.UUID.randomUUID.toString
 }
 
 class UserDataStore extends Actor {
@@ -46,7 +55,8 @@ class UserDataStore extends Actor {
     case GetOne(id) =>
       sender() ! users.get(id).map(OneUser).getOrElse(NotFound(id))
 
-    case AddOne(user) =>
+    case AddOne(newUser) =>
+      val user = UserX(newUUID(), newUser)
       users = users + (user.id -> user)
       sender() ! OneUser(user)
 
