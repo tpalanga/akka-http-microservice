@@ -40,6 +40,47 @@ class UserSpec extends AsyncFlatSpec with Matchers with RestSpec with Dataservic
     }
   }
 
+  it should "update user" in {
+    val newUser = NewUser("test name")
+    val updatedUser = NewUser("test name")
+
+    for {
+      replyCreate <- userCreate(newUser)
+      user <- replyCreate.entity
+      _ = replyCreate.status shouldBe StatusCodes.Created
+      _ = user.name shouldBe newUser.name
+
+      updatingUser = user.copy(name = "new name")
+      replyUpdate <- userUpdate(updatingUser)
+      _ = replyUpdate.status shouldBe StatusCodes.OK
+      userUpdated <- replyUpdate.entity
+      _ = userUpdated shouldBe updatingUser
+
+      replyRetrieve <- userRetrieve(user.id)
+      retrievedUser <- replyRetrieve.entity
+    } yield {
+      replyRetrieve.status shouldBe StatusCodes.OK
+      retrievedUser shouldBe updatingUser
+    }
+  }
+
+  it should "delete user" in {
+    val newUser = NewUser("test name")
+
+    for {
+      replyCreate <- userCreate(newUser)
+      user <- replyCreate.entity
+      _ = replyCreate.status shouldBe StatusCodes.Created
+
+      replyDelete <- userDelete(user.id)
+      _ = replyDelete.status shouldBe StatusCodes.OK
+
+      replyRetrieve <- userRetrieve(user.id)
+    } yield {
+      replyRetrieve.status shouldBe StatusCodes.NotFound
+    }
+  }
+
   it should "list users" in {
     val newUser = NewUser("test name")
 

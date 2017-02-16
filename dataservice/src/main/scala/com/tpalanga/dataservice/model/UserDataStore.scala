@@ -8,8 +8,8 @@ import scala.collection.immutable.Seq
 object UserDataStore {
   type UserId = String
 
-  object UserX {
-    def apply(id: UserId, newUser: NewUser): User =
+  object User {
+    def fromNewUser(id: UserId, newUser: NewUser): User =
       User(id, newUser.name)
   }
   case class User(id: UserId, name: String)
@@ -32,7 +32,7 @@ object UserDataStore {
   case class NotFound(id: UserId) extends GetUserResponse with UpdateUserResponse with DeleteUserResponse
 
   object DataFormats extends DefaultJsonProtocol {
-    implicit val userFormat: RootJsonFormat[User] = jsonFormat2(User)
+    implicit val userFormat: RootJsonFormat[User] = jsonFormat2(User.apply)
     implicit val newUserFormat: RootJsonFormat[NewUser] = jsonFormat1(NewUser)
     implicit val oneUserFormat: RootJsonFormat[OneUser] = jsonFormat1(OneUser)
     implicit val allUsersFormat: RootJsonFormat[AllUsers] = jsonFormat1(AllUsers)
@@ -56,7 +56,7 @@ class UserDataStore extends Actor {
       sender() ! users.get(id).map(OneUser).getOrElse(NotFound(id))
 
     case AddOne(newUser) =>
-      val user = UserX(newUUID(), newUser)
+      val user = User.fromNewUser(newUUID(), newUser)
       users = users + (user.id -> user)
       sender() ! OneUser(user)
 

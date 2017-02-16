@@ -32,4 +32,9 @@ class RestClient(config: RestServiceConfig)(implicit system: ActorSystem) {
   def post(path: String, headers: Seq[HttpHeader] = Nil, entity: RequestEntity = HttpEntity.Empty): Future[HttpResponse] =
     sendRequest(HttpRequest(POST, uriFor(path), headers, entity))
 
+  def put(path: String, headers: Seq[HttpHeader] = Nil, entity: RequestEntity = HttpEntity.Empty): Future[HttpResponse] =
+    sendRequest(HttpRequest(PUT, uriFor(path), headers, entity))
+
+  def delete(path: String, headers: Seq[HttpHeader] = Nil): Future[HttpResponse] =
+    sendRequest(HttpRequest(DELETE, uriFor(path), headers))
 }
