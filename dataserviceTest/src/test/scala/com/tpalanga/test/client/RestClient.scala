@@ -30,6 +30,6 @@ class RestClient(config: RestServiceConfig)(implicit system: ActorSystem) {
     sendRequest(HttpRequest(GET, uriFor(path), headers))
 
   def post(path: String, headers: Seq[HttpHeader] = Nil, entity: RequestEntity = HttpEntity.Empty): Future[HttpResponse] =
-    sendRequest(HttpRequest(GET, uriFor(path), headers))
+    sendRequest(HttpRequest(POST, uriFor(path), headers, entity))
 
 }
