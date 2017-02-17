@@ -11,3 +11,7 @@ or in development mode:
 or in development mode:
 
 `sbt "; project dataservice; ~reStart"`
+
+
+# Running tests with coverage
+`sbt "; project dataservice; clean; coverage; test; coverageReport"`
