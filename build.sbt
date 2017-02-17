@@ -34,7 +34,7 @@ lazy val dataservice = project.
   settings(
     name := "dataservice",
     commonSettings,
-    libraryDependencies ++= commonDependencies
+    libraryDependencies ++= commonDependencies ++ testingDependencies
   )
 
 lazy val dataserviceTest = project.

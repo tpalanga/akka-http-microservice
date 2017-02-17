@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.pattern.ask
 import akka.util.Timeout
-import com.tpalanga.dataservice.model.UserDataStore
+import com.tpalanga.dataservice.model.{NewUser, User, UserDataStore}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -41,7 +41,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
         } ~
         put {
           // update
-          entity(as[UserDataStore.User]) { user =>
+          entity(as[User]) { user =>
             onComplete((userService ? UserDataStore.Update(user)).mapTo[UserDataStore.UpdateUserResponse]) {
               case Success(oneUser: UserDataStore.OneUser) =>
                 complete(oneUser.user)
@@ -91,7 +91,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
         } ~
         post {
           // create
-          entity(as[UserDataStore.NewUser]) { user =>
+          entity(as[NewUser]) { user =>
             onComplete((userService ? UserDataStore.AddOne(user)).mapTo[UserDataStore.OneUser]) {
               case Success(oneUser) =>
                 complete(StatusCodes.Created, oneUser.user)

@@ -6,14 +6,6 @@ import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 import scala.collection.immutable.Seq
 
 object UserDataStore {
-  type UserId = String
-
-  object User {
-    def fromNewUser(id: UserId, newUser: NewUser): User =
-      User(id, newUser.name)
-  }
-  case class User(id: UserId, name: String)
-  case class NewUser(name: String)
 
   sealed trait Request
   case object GetAll extends Request
