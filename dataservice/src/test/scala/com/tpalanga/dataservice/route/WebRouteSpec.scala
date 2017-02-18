@@ -30,7 +30,6 @@ class WebRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSuppor
   implicit override val patienceConfig = PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(100, Millis)))
   private val longPatienceConfig = PatienceConfig(timeout = scaled(Span(5, Seconds)), interval = scaled(Span(100, Millis)))
 
-  // TODO (TP): use a tree like spec (FeatureSpec?)
   "WebRoute" when {
     "receiving a user GET request" should {
       "respond with the user data if the user exists" in new Test {
