@@ -1,6 +1,6 @@
 package com.tpalanga.dataservice.model
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 import scala.collection.immutable.Seq
@@ -37,7 +37,7 @@ object UserDataStore {
   def newUUID(): String = java.util.UUID.randomUUID.toString
 }
 
-class UserDataStore extends Actor {
+class UserDataStore extends Actor with ActorLogging {
   import UserDataStore._
 
   // TODO (TP): change state handling to become() style
@@ -73,5 +73,10 @@ class UserDataStore extends Actor {
         Deleted(id)
       }.getOrElse(NotFound(id))
       sender() ! reply
+  }
+
+  override def unhandled(msg: Any) {
+    log.warning(s"Unhandled message $msg")
+    super.unhandled()
   }
 }

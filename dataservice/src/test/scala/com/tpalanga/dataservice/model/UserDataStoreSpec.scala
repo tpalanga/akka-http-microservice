@@ -1,6 +1,8 @@
 package com.tpalanga.dataservice.model
 
 import akka.actor.{ActorRef, ActorSystem}
+import akka.event.Logging
+import akka.event.Logging.LogEvent
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.scalatest.{FlatSpecLike, Matchers, OptionValues}
 
@@ -59,7 +61,7 @@ class UserDataStoreSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with F
   it should "retrieve all users" in new TestWithCreatedUsers {
     userDataStore ! UserDataStore.GetAll
     val allUsers = expectMsgType[UserDataStore.AllUsers]
-    allUsers.users should contain theSameElementsAs(createdUsers)
+    allUsers.users should contain theSameElementsAs createdUsers
   }
 
   it should "update user" in new TestWithCreatedUsers {
@@ -92,4 +94,14 @@ class UserDataStoreSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with F
     expectMsg(UserDataStore.NotFound("unknown"))
   }
 
+  it should "log a message when receiving a message that is not handled" in new Test {
+    val logProbe = TestProbe()
+    system.eventStream.subscribe(logProbe.ref, classOf[LogEvent])
+
+    userDataStore ! 'Unexpected
+
+    val logEvent = logProbe.expectMsgType[LogEvent]
+    logEvent.level shouldBe Logging.WarningLevel
+    logEvent.message shouldBe "Unhandled message 'Unexpected"
+  }
 }
