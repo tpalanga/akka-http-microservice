@@ -1,0 +1,30 @@
+===== Slides =====
+
+Intro, about
+Background, reason - Akka testing, microservice testing
+What this is not - an extensive test tutorial for akka
+Goals(?)
+
+Unit testing
+- actor test
+- route test
+- code coverage
+- what code coverage doesn't show (shared code between states)
+- message not handled - override unhandled
+- message not handled - subscribe to events
+- race conditions (messages changing states)
+- logging unhandled messages
+- long timeouts, overriding config
+- ask
+- composing/linking actors (factories)
+- futures, pipe
+
+API testing
+- reason
+- setup
+- docker
+
+Integration testing
+- reason
+- setup
+- docker
