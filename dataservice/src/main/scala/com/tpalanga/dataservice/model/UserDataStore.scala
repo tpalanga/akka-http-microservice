@@ -40,7 +40,7 @@ object UserDataStore {
 class UserDataStore extends Actor {
   import UserDataStore._
 
-  var users: Map[UserId, User] = Map.empty
+  private var users: Map[UserId, User] = Map.empty
 
   override def receive: Receive = {
     case GetAll =>
