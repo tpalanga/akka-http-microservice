@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{Route, ValidationRejection}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.tpalanga.dataservice.model.{NewUser, User, UserDataStore}
@@ -61,7 +61,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
         } ~
         delete {
           // delete
-          onComplete((userService ? UserDataStore.Delete(id)).mapTo[UserDataStore.Deleted]) {
+          onComplete((userService ? UserDataStore.Delete(id)).mapTo[UserDataStore.DeleteUserResponse]) {
             case Success(_) =>
               complete("Deleted")
 
@@ -77,8 +77,8 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
       pathEnd {
         get {
           // list
-          onComplete((userService ? UserDataStore.GetAll).mapTo[UserDataStore.AllUsers]) {
-            case Success(allUsers) =>
+          onComplete((userService ? UserDataStore.GetAll).mapTo[UserDataStore.GetAllUserResponse]) {
+            case Success(allUsers: UserDataStore.AllUsers) =>
               complete(allUsers.users)
 
             case Failure(th) =>
@@ -92,13 +92,16 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
         post {
           // create
           entity(as[NewUser]) { user =>
-            onComplete((userService ? UserDataStore.AddOne(user)).mapTo[UserDataStore.OneUser]) {
-              case Success(oneUser) =>
+            onComplete((userService ? UserDataStore.AddOne(user)).mapTo[UserDataStore.AddUserResponse]) {
+              case Success(oneUser: UserDataStore.OneUser) =>
                 complete(StatusCodes.Created, oneUser.user)
+
+              case Success(UserDataStore.AlreadyExists) =>
+                reject(ValidationRejection("User already exists"))
 
               case Failure(th) =>
                 extractLog { log =>
-                  val msg = s"Creation of user $user failed"
+                  val msg = s"Creation of user '${user.name}' failed"
                   log.error(th, msg)
                   complete(StatusCodes.InternalServerError, s"$msg: ${th.getMessage}")
                 }

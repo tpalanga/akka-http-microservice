@@ -14,14 +14,16 @@ object UserDataStore {
   case class Update(user: User) extends Request
   case class Delete(id: UserId) extends Request
 
-  case class AllUsers(users: Seq[User])
-
   sealed trait GetUserResponse
+  sealed trait AddUserResponse
   sealed trait UpdateUserResponse
   sealed trait DeleteUserResponse
+  sealed trait GetAllUserResponse
   case class Deleted(id: UserId) extends DeleteUserResponse
-  case class OneUser(user: User) extends GetUserResponse with UpdateUserResponse
+  case class OneUser(user: User) extends GetUserResponse with AddUserResponse with UpdateUserResponse
   case class NotFound(id: UserId) extends GetUserResponse with UpdateUserResponse with DeleteUserResponse
+  case object AlreadyExists extends AddUserResponse
+  case class AllUsers(users: Seq[User]) extends GetAllUserResponse
 
   object DataFormats extends DefaultJsonProtocol {
     implicit val userFormat: RootJsonFormat[User] = jsonFormat2(User.apply)
@@ -48,9 +50,14 @@ class UserDataStore extends Actor {
       sender() ! users.get(id).map(OneUser).getOrElse(NotFound(id))
 
     case AddOne(newUser) =>
-      val user = User.fromNewUser(newUUID(), newUser)
-      users = users + (user.id -> user)
-      sender() ! OneUser(user)
+      val reply = users.values.find(_.name == newUser.name)
+        .map(_ => AlreadyExists)
+        .getOrElse {
+          val user = User.fromNewUser(newUUID(), newUser)
+          users = users + (user.id -> user)
+          OneUser(user)
+        }
+      sender() ! reply
 
     case Update(user) =>
       val reply = users.get(user.id).map { _ =>
