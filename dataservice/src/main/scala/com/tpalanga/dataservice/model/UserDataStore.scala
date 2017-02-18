@@ -77,6 +77,6 @@ class UserDataStore extends Actor with ActorLogging {
 
   override def unhandled(msg: Any) {
     log.warning(s"Unhandled message $msg")
-    super.unhandled()
+    super.unhandled(msg)
   }
 }

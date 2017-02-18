@@ -1,9 +1,13 @@
 
+lazy val coverageSettings = Seq(
+  coverageExcludedPackages := ".*Bootstrap.*"
+)
 lazy val commonSettings = Seq(
   organization := "com.tpalanga",
   version := "1.0",
-  scalaVersion := "2.11.8"
-)
+  scalaVersion := "2.11.8",
+  scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
+) ++ coverageSettings
 
 val akkaVersion = "2.4.17"
 val akkaHttpVersion = "10.0.3"
