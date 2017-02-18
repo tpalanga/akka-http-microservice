@@ -5,8 +5,8 @@ lazy val commonSettings = Seq(
   scalaVersion := "2.11.8"
 )
 
-val akkaVersion = "2.4.16"
-val akkaHttpVersion = "10.0.2"
+val akkaVersion = "2.4.17"
+val akkaHttpVersion = "10.0.3"
 val scalaTestVersion = "3.0.1"
 
 val commonDependencies = Seq (
