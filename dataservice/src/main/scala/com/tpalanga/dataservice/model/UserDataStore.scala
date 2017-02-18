@@ -40,6 +40,7 @@ object UserDataStore {
 class UserDataStore extends Actor {
   import UserDataStore._
 
+  // TODO (TP): change state handling to become() style
   private var users: Map[UserId, User] = Map.empty
 
   override def receive: Receive = {
