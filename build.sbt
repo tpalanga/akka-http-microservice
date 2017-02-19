@@ -47,4 +47,12 @@ lazy val newsletterServiceTest = project.
     commonSettings,
     libraryDependencies ++=  commonDependencies ++ testingDependencies
   )
+  .dependsOn(testLib)
+
+lazy val testLib = project.
+  settings(
+    name := "testLib",
+    commonSettings,
+    libraryDependencies ++=  commonDependencies ++ testingDependencies
+  )
 

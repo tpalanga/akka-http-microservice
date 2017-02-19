@@ -1,4 +1,4 @@
-package com.tpalanga.test.client
+package com.tpalanga.testlib.test.client
 
 import akka.http.scaladsl.model.{HttpResponse, StatusCode}
 import akka.http.scaladsl.unmarshalling.Unmarshal

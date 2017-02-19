@@ -1,7 +1,7 @@
-package com.tpalanga.test.client
+package com.tpalanga.testlib.test.client
 
 import akka.actor.ActorSystem
-import com.tpalanga.test.config.RestServiceConfig
+import com.tpalanga.testlib.test.config.RestServiceConfig
 
 trait RestServiceClient {
 

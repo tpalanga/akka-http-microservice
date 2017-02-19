@@ -1,5 +1,6 @@
 package com.tpalanga.test.config
 
+import com.tpalanga.testlib.test.config.RestServiceConfig
 import com.typesafe.config.Config
 
 object TestConfig {

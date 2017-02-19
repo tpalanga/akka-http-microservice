@@ -19,4 +19,8 @@ or in development mode:
 # Running API tests
 First you will need to run the newsletter service (see above), then run this command:
 
-`sbt newsletterServiceTest/test`
+`sbt newsletterServiceTest/test` 
+ 
+ or
+
+`sbt "; project newsletterServiceTest; clean; test"`

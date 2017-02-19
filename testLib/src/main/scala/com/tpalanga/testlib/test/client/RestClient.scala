@@ -1,11 +1,11 @@
-package com.tpalanga.test.client
+package com.tpalanga.testlib.test.client
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model._
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
-import com.tpalanga.test.config.RestServiceConfig
+import com.tpalanga.testlib.test.config.RestServiceConfig
 
 import scala.collection.immutable.Seq
 import scala.concurrent.Future

@@ -1,4 +1,4 @@
-package com.tpalanga.test.config
+package com.tpalanga.testlib.test.config
 
 import com.typesafe.config.Config
 
