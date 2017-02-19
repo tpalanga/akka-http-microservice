@@ -24,3 +24,7 @@ First you will need to run the newsletter service (see above), then run this com
  or
 
 `sbt "; project newsletterServiceTest; clean; test"`
+
+with environment config: 
+
+`sbt -DCONFIG=test.conf newsletterServiceTest/test` 
