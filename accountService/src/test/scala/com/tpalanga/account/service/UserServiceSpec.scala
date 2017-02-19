@@ -7,7 +7,7 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.tpalanga.account.model.{NewUser, User}
 import org.scalatest.{FlatSpecLike, Matchers, OptionValues}
 
-object UserDataStoreSpec {
+object UserServiceSpec {
 
   abstract class Test(implicit val system: ActorSystem) {
     val userDataStore: ActorRef = system.actorOf(UserService.props())
@@ -29,8 +29,8 @@ object UserDataStoreSpec {
   }
 }
 
-class UserDataStoreSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
-  import UserDataStoreSpec._
+class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
+  import UserServiceSpec._
 
   "UserDataStore" should "create user" in new Test {
     userDataStore ! UserService.AddOne(NewUser("new user"))
