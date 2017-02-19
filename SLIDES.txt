@@ -28,3 +28,4 @@ Integration testing
 - reason
 - setup
 - docker
+- difference with mocking/stubbing
