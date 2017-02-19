@@ -32,7 +32,7 @@ object UserServiceSpec {
 class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
   import UserServiceSpec._
 
-  "UserDataStore" should "create user" in new Test {
+  "UserService" should "create user" in new Test {
     userDataStore ! UserService.AddOne(NewUser("new user"))
 
     val oneUser = expectMsgType[UserService.OneUser]
