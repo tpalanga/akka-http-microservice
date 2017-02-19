@@ -1,9 +1,9 @@
-package com.tpalanga.microservice
+package com.tpalanga.account
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import com.tpalanga.microservice.route.WebRoute
+import com.tpalanga.account.route.WebRoute
 
 object Bootstrap extends App {
 

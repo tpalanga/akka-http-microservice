@@ -1,4 +1,4 @@
-package com.tpalanga.microservice.route
+package com.tpalanga.account.route
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.testkit.ScalatestRouteTest
