@@ -27,23 +27,23 @@ val testingDependencies = Seq(
   "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
 )
 
-lazy val root = (project in file(".")).
+lazy val accountService = project.
   settings(
-    name := "akka-http-microservice",
+    name := "accountService",
     commonSettings,
     libraryDependencies ++= commonDependencies ++ testingDependencies
   )
 
-lazy val dataservice = project.
+lazy val newsletterService = project.
   settings(
-    name := "dataservice",
+    name := "newsletterService",
     commonSettings,
     libraryDependencies ++= commonDependencies ++ testingDependencies
   )
 
-lazy val dataserviceTest = project.
+lazy val newsletterServiceTest = project.
   settings(
-    name := "dataserviceTest",
+    name := "newsletterServiceTest",
     commonSettings,
     libraryDependencies ++=  commonDependencies ++ testingDependencies
   )
