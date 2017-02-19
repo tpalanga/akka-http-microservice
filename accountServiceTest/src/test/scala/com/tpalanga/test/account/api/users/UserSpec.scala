@@ -1,7 +1,7 @@
-package com.tpalanga.test.newsletter.api.users
+package com.tpalanga.test.account.api.users
 
 import akka.http.scaladsl.model.StatusCodes
-import com.tpalanga.test.newsletter.api.users.model.NewUser
+import com.tpalanga.test.account.api.users.model.NewUser
 import com.tpalanga.test.spec.RestSpec
 import org.scalatest.{AsyncFlatSpec, Matchers}
 
