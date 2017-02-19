@@ -7,7 +7,7 @@ import com.tpalanga.account.route.WebRoute
 
 object Bootstrap extends App {
 
-  implicit val system = ActorSystem("akka-http-microservice-system")
+  implicit val system = ActorSystem("account-system")
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
 

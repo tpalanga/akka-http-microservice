@@ -1,9 +1,9 @@
-# Running akka-http-microservice
-`sbt run`
+# Running the accountService
+`sbt "; project accountService; run"`
 
 or in development mode:
 
-`sbt ~reStart"`
+`sbt "; project accountService; ~reStart"`
 
 # Running the newsletterService
 `sbt "; project newsletterService; run"`
