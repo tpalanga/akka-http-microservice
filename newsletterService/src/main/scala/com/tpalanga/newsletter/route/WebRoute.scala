@@ -7,13 +7,13 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Route, ValidationRejection}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.tpalanga.newsletter.model.{NewUser, User, UserDataStore}
+import com.tpalanga.newsletter.model.{Subscriber, UserDataStore}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 class WebRoute(userService: ActorRef) extends SprayJsonSupport {
-  import User.DataFormats._
+  import Subscriber.DataFormats._
   import UserDataStore.DataFormats._
 
   implicit val askTimeout = Timeout(3.seconds)
@@ -42,7 +42,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
         } ~
         put {
           // update
-          entity(as[User]) { user =>
+          entity(as[Subscriber]) { user =>
             onComplete((userService ? UserDataStore.Update(user)).mapTo[UserDataStore.UpdateUserResponse]) {
               case Success(oneUser: UserDataStore.OneUser) =>
                 complete(oneUser.user)
@@ -92,7 +92,7 @@ class WebRoute(userService: ActorRef) extends SprayJsonSupport {
         } ~
         post {
           // create
-          entity(as[NewUser]) { user =>
+          entity(as[Subscriber]) { user =>
             onComplete((userService ? UserDataStore.AddOne(user)).mapTo[UserDataStore.AddUserResponse]) {
               case Success(oneUser: UserDataStore.OneUser) =>
                 complete(StatusCodes.Created, oneUser.user)

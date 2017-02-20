@@ -10,8 +10,8 @@ object UserDataStore {
   sealed trait Request
   case object GetAll extends Request
   case class GetOne(id: UserId) extends Request
-  case class AddOne(user: NewUser) extends Request
-  case class Update(user: User) extends Request
+  case class AddOne(user: Subscriber) extends Request
+  case class Update(user: Subscriber) extends Request
   case class Delete(id: UserId) extends Request
 
   sealed trait GetUserResponse
@@ -20,15 +20,13 @@ object UserDataStore {
   sealed trait DeleteUserResponse
   sealed trait GetAllUserResponse
   case class Deleted(id: UserId) extends DeleteUserResponse
-  case class OneUser(user: User) extends GetUserResponse with AddUserResponse with UpdateUserResponse
+  case class OneUser(user: Subscriber) extends GetUserResponse with AddUserResponse with UpdateUserResponse
   case class NotFound(id: UserId) extends GetUserResponse with UpdateUserResponse with DeleteUserResponse
   case object AlreadyExists extends AddUserResponse
-  case class AllUsers(users: Seq[User]) extends GetAllUserResponse
+  case class AllUsers(users: Seq[Subscriber]) extends GetAllUserResponse
 
   object DataFormats extends DefaultJsonProtocol {
-    import User.DataFormats._
-//    implicit val userFormat: RootJsonFormat[User] = jsonFormat2(User.apply)
-    implicit val newUserFormat: RootJsonFormat[NewUser] = jsonFormat1(NewUser)
+    import Subscriber.DataFormats._
     implicit val oneUserFormat: RootJsonFormat[OneUser] = jsonFormat1(OneUser)
     implicit val allUsersFormat: RootJsonFormat[AllUsers] = jsonFormat1(AllUsers)
   }
@@ -42,7 +40,7 @@ class UserDataStore extends Actor with ActorLogging {
   import UserDataStore._
 
   // TODO (TP): change state handling to become() style
-  private var users: Map[UserId, User] = Map.empty
+  private var users: Map[UserId, Subscriber] = Map.empty
 
   override def receive: Receive = {
     case GetAll =>
@@ -51,11 +49,10 @@ class UserDataStore extends Actor with ActorLogging {
     case GetOne(id) =>
       sender() ! users.get(id).map(OneUser).getOrElse(NotFound(id))
 
-    case AddOne(newUser) =>
-      val reply = users.values.find(_.name == newUser.name)
+    case AddOne(user) =>
+      val reply = users.values.find(_.id == user.id)
         .map(_ => AlreadyExists)
         .getOrElse {
-          val user = User.fromNewUser(newUUID(), newUser)
           users = users + (user.id -> user)
           OneUser(user)
         }

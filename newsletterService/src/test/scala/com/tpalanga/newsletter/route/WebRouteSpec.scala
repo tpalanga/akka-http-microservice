@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server.{Route, ValidationRejection}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.testkit.TestProbe
-import com.tpalanga.newsletter.model.{NewUser, User, UserDataStore}
+import com.tpalanga.newsletter.model.{Subscriber, UserDataStore}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.{Matchers, WordSpec}
@@ -14,8 +14,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 object WebRouteSpec {
   val userId = "ABC-123"
-  val testUser = User(userId, "my test user")
-  val newTestUser = NewUser("my test user")
+  val testUser = Subscriber(userId, "my test user", "test@test.com")
 
   abstract class Test(implicit system: ActorSystem) {
     protected val userService = TestProbe()
@@ -24,7 +23,7 @@ object WebRouteSpec {
 }
 
 class WebRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSupport with Matchers with Eventually {
-  import User.DataFormats._
+  import Subscriber.DataFormats._
   import WebRouteSpec._
 
   implicit override val patienceConfig = PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(100, Millis)))
@@ -39,7 +38,7 @@ class WebRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSuppor
           eventually {
             status shouldEqual StatusCodes.OK
           }
-          responseAs[User] should be(testUser)
+          responseAs[Subscriber] should be(testUser)
         }
       }
 
@@ -68,19 +67,19 @@ class WebRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSuppor
 
     "receiving a user POST request (create new user)" should {
       "respond with the user data" in new Test {
-        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user"}""")) ~> route ~> check {
-          userService.expectMsg(UserDataStore.AddOne(newTestUser))
+        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"id":"ABC-123", "name":"my test user", "email":"test@test.com"}""")) ~> route ~> check {
+          userService.expectMsg(UserDataStore.AddOne(testUser))
           userService.reply(UserDataStore.OneUser(testUser))
           eventually {
             status shouldEqual StatusCodes.Created
           }
-          responseAs[User] should be(testUser)
+          responseAs[Subscriber] should be(testUser)
         }
       }
 
       "respond with validation rejection if the user already exists" in new Test {
-        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user"}""")) ~> route ~> check {
-          userService.expectMsg(UserDataStore.AddOne(newTestUser))
+        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"id":"ABC-123", "name":"my test user", "email":"test@test.com"}""")) ~> route ~> check {
+          userService.expectMsg(UserDataStore.AddOne(testUser))
           userService.reply(UserDataStore.AlreadyExists)
           eventually {
             rejection shouldEqual ValidationRejection("User already exists")
@@ -91,8 +90,8 @@ class WebRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSuppor
       "respond with status 500 if adding the user fails (times out)" in new Test {
         // this timeout should be longer than the ask timeout
         private implicit val patienceConfig = longPatienceConfig
-        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user"}""")) ~> route ~> check {
-          userService.expectMsg(UserDataStore.AddOne(newTestUser))
+        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"id":"ABC-123", "name":"my test user", "email":"test@test.com"}""")) ~> route ~> check {
+          userService.expectMsg(UserDataStore.AddOne(testUser))
           eventually {
             status shouldEqual StatusCodes.InternalServerError
           }

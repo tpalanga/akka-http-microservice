@@ -14,6 +14,7 @@ or in development mode:
 
 
 # Running tests with coverage
+`sbt "; project accountService; clean; coverage; test; coverageReport"`
 `sbt "; project newsletterService; clean; coverage; test; coverageReport"`
 
 # Running API tests
