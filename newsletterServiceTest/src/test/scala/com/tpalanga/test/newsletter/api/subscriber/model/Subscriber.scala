@@ -1,4 +1,4 @@
-package com.tpalanga.test.newsletter.api.users.model
+package com.tpalanga.test.newsletter.api.subscriber.model
 
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 

@@ -1,10 +1,10 @@
-package com.tpalanga.test.newsletter.api.users
+package com.tpalanga.test.newsletter.api.subscriber
 
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{ContentTypes, RequestEntity}
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import com.tpalanga.test.config.TestConfig
-import com.tpalanga.test.newsletter.api.users.model.{Subscriber, Subscribers}
+import com.tpalanga.test.newsletter.api.subscriber.model.{Subscriber, Subscribers}
 import com.tpalanga.testlib.test.client.{NoEntity, Response, RestServiceClient}
 import com.tpalanga.testlib.test.config.RestServiceConfig
 
@@ -13,7 +13,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 trait NewsletterServiceRestServiceClient extends RestServiceClient {
   import NoEntity.DataFormats._
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-  import com.tpalanga.test.newsletter.api.users.model.SubscriberJsonProtocol._
+  import com.tpalanga.test.newsletter.api.subscriber.model.SubscriberJsonProtocol._
 
   val testConfig: TestConfig
 
