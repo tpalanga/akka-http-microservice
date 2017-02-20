@@ -1,8 +1,6 @@
 package com.tpalanga.account.service
 
 import akka.actor.{ActorRef, ActorSystem}
-import akka.event.Logging
-import akka.event.Logging.LogEvent
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.tpalanga.account.model.{NewUser, User}
 import org.scalatest.{FlatSpecLike, Matchers, OptionValues}
@@ -93,16 +91,5 @@ class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with Fla
   it should "reply NotFound when attempting to delete an inexistent user" in new TestWithCreatedUsers {
     userDataStore ! UserService.Delete("unknown")
     expectMsg(UserService.NotFound("unknown"))
-  }
-
-  it should "log a message when receiving a message that is not handled" in new Test {
-    val logProbe = TestProbe()
-    system.eventStream.subscribe(logProbe.ref, classOf[LogEvent])
-
-    userDataStore ! 'Unexpected
-
-    val logEvent = logProbe.expectMsgType[LogEvent]
-    logEvent.level shouldBe Logging.WarningLevel
-    logEvent.message shouldBe "Unhandled message 'Unexpected"
   }
 }

@@ -75,9 +75,4 @@ class UserService extends Actor with ActorLogging {
       }.getOrElse(NotFound(id))
       sender() ! reply
   }
-
-  override def unhandled(msg: Any) {
-    log.warning(s"Unhandled message $msg")
-    super.unhandled(msg)
-  }
 }
