@@ -23,8 +23,10 @@ class RestClient(config: RestServiceConfig)(implicit system: ActorSystem) {
     Uri(s"${config.protocol}://${config.host}$portext$path")
   }
 
-  protected def sendRequest(httpRequest: HttpRequest): Future[HttpResponse] =
+  protected def sendRequest(httpRequest: HttpRequest): Future[HttpResponse] = {
+    println(httpRequest)
     http.singleRequest(httpRequest)
+  }
 
   def get(path: String, headers: Seq[HttpHeader] = Nil): Future[HttpResponse] =
     sendRequest(HttpRequest(GET, uriFor(path), headers))

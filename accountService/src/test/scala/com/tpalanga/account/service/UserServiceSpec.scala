@@ -14,9 +14,9 @@ object UserServiceSpec {
   trait TestWithCreatedUsers extends Test with Matchers {
     val requester = TestProbe()
     val newUsers = Seq(
-      NewUser("user 1"),
-      NewUser("user 2"),
-      NewUser("user 3")
+      NewUser("user 1", "user1@test.com"),
+      NewUser("user 2", "user2@test.com"),
+      NewUser("user 3", "user3@test.com")
     )
     val createdUsers = newUsers.map { user =>
       userDataStore.tell(UserService.AddOne(user), requester.ref)
@@ -31,7 +31,7 @@ class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with Fla
   import UserServiceSpec._
 
   "UserService" should "create user" in new Test {
-    userDataStore ! UserService.AddOne(NewUser("new user"))
+    userDataStore ! UserService.AddOne(NewUser("new user", "newuser@test.com"))
 
     val oneUser = expectMsgType[UserService.OneUser]
     oneUser.user.name shouldBe "new user"
@@ -41,7 +41,7 @@ class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with Fla
   }
 
   it should "reply user already exists when attempting to add an user with a duplicate name" in new TestWithCreatedUsers {
-    userDataStore ! UserService.AddOne(NewUser("user 1"))
+    userDataStore ! UserService.AddOne(NewUser("user 1", "user1@test.com"))
     expectMsg(UserService.AlreadyExists)
   }
 
@@ -74,7 +74,7 @@ class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with Fla
   }
 
   it should "reply NotFound when attempting to update an inexistent user" in new TestWithCreatedUsers {
-    val updatedUser = User("unknown", "renamed")
+    val updatedUser = User("unknown", "renamed", "unknown@test.com")
     userDataStore ! UserService.Update(updatedUser)
     expectMsg(UserService.NotFound("unknown"))
   }

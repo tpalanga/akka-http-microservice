@@ -15,8 +15,8 @@ import org.scalatest.{Matchers, WordSpec}
 
 object UserRouteSpec {
   val userId = "ABC-123"
-  val testUser = User(userId, "my test user")
-  val newTestUser = NewUser("my test user")
+  val testUser = User(userId, "my test user", "test@test.com")
+  val newTestUser = NewUser("my test user", "test@test.com")
 
   abstract class Test(implicit system: ActorSystem) {
     protected val userService = TestProbe()

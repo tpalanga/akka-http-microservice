@@ -1,5 +1,6 @@
 package com.tpalanga.test.account.api.users
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{ContentTypes, RequestEntity}
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
@@ -10,14 +11,15 @@ import com.tpalanga.testlib.test.config.RestServiceConfig
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-trait DataserviceRestServiceClient extends RestServiceClient {
+trait AccountServiceRestServiceClient extends RestServiceClient {
   import NoEntity.DataFormats._
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import com.tpalanga.test.account.api.users.model.UserJsonProtocol._
 
   val testConfig: TestConfig
 
-  override val restServiceConfig: RestServiceConfig = testConfig.restServiceConfig
+  override val restServiceConfig: RestServiceConfig = testConfig.accountServiceConfig
+  println(s"AccountServiceRestServiceClient: $restServiceConfig")
   private implicit val materializer: Materializer = ActorMaterializer(ActorMaterializerSettings(system))
 
   private def logResponse[T](response: Response[T]) = {
@@ -66,3 +68,5 @@ trait DataserviceRestServiceClient extends RestServiceClient {
     }
 
 }
+class AccountServiceRestServiceClientImpl()(implicit val testConfig: TestConfig, val system: ActorSystem)
+  extends AccountServiceRestServiceClient

@@ -28,7 +28,7 @@ object UserService {
 
   object DataFormats extends DefaultJsonProtocol {
     import User.DataFormats._
-    implicit val newUserFormat: RootJsonFormat[NewUser] = jsonFormat1(NewUser)
+    implicit val newUserFormat: RootJsonFormat[NewUser] = jsonFormat2(NewUser)
     implicit val oneUserFormat: RootJsonFormat[OneUser] = jsonFormat1(OneUser)
     implicit val allUsersFormat: RootJsonFormat[AllUsers] = jsonFormat1(AllUsers)
   }

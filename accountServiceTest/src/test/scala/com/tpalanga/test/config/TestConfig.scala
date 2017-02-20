@@ -6,8 +6,13 @@ import com.typesafe.config.Config
 object TestConfig {
   def apply(config: Config): TestConfig =
     new TestConfig(
-      restServiceConfig = RestServiceConfig(config.getConfig("remote.service"))
+      accountServiceConfig = RestServiceConfig(config.getConfig("remote.service.account")),
+      newsletterServiceConfig = RestServiceConfig(config.getConfig("remote.service.newsletter"))
     )
 }
 
-case class TestConfig(restServiceConfig: RestServiceConfig)
+case class TestConfig(
+                       accountServiceConfig: RestServiceConfig,
+                       newsletterServiceConfig: RestServiceConfig
+                     )
+
