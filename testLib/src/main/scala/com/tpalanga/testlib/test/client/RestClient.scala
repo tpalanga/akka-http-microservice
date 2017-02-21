@@ -24,7 +24,7 @@ class RestClient(config: RestServiceConfig)(implicit system: ActorSystem) {
   }
 
   protected def sendRequest(httpRequest: HttpRequest): Future[HttpResponse] = {
-    println(httpRequest)
+    //println(httpRequest)
     http.singleRequest(httpRequest)
   }
 

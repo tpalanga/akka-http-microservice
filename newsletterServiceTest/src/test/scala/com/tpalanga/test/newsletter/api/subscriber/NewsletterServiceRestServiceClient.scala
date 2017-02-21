@@ -8,7 +8,7 @@ import com.tpalanga.test.newsletter.api.subscriber.model.{Subscriber, Subscriber
 import com.tpalanga.testlib.test.client.{NoEntity, Response, RestServiceClient}
 import com.tpalanga.testlib.test.config.RestServiceConfig
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 
 trait NewsletterServiceRestServiceClient extends RestServiceClient {
   import NoEntity.DataFormats._
@@ -22,9 +22,7 @@ trait NewsletterServiceRestServiceClient extends RestServiceClient {
 
   private def logResponse[T](response: Response[T]) = {
     // TODO (TP): use a logger
-    println(response)
-    import scala.concurrent.duration._
-    println(Await.result(response.entity, 100.millis))
+    //println(response)
     response
   }
 
