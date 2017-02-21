@@ -42,8 +42,9 @@ class: middle
 
 >>>>>># Introduction
 
->- Building software for over 15 years
+>>>- Building software for over 15 years
 - Fullstack, lately more backend
+- Moved to Scala from Java a bit over 2 years ago
 - Currently at Hotels.com in the SEM Tools team
 - Twitter: @TudorPalanga
 - Github: https://github.com/tpalanga
@@ -60,11 +61,24 @@ class: middle
 - What this is not
 
 ---
+
+class: middle
+
+>>>>># Project structure
+- accountService
+- accountServiceTest
+- newsletterService
+- newsletterServiceTest
+- testLib
+
+---
+
 class: center, middle
 
 # Unit testing
 
 ---
+
 ### Actor testing - actor implementation
 
 ```scala
@@ -92,6 +106,7 @@ class SubscriberService extends Actor {
 ```
 
 ---
+
 ### Actor testing - test setup
 
 ```scala
@@ -120,6 +135,7 @@ object SubscriberServiceSpec {
 
 ```
 ---
+
 ### Actor testing - test cases
 
 ```scala
@@ -144,6 +160,7 @@ class SubscriberServiceSpec extends TestKit(ActorSystem("SubscriberServiceSpec")
 ```
 
 ---
+
 ### Route testing - implementation
 
 ```scala
@@ -178,6 +195,7 @@ class SubscriberRoute(subscriberService: ActorRef) extends SprayJsonSupport {
 ```
 
 ---
+
 ### Route testing - unit test
 
 ```scala
@@ -213,6 +231,7 @@ class SubscriberRouteSpec extends WordSpec with ScalatestRouteTest with SprayJso
 ```
 
 ---
+
 ### Code coverage
 
 ```bash
@@ -229,6 +248,30 @@ Generates the HTML/XML/Cobertura report in:
 - shared partial functions between states
   >(error/timeout handling)
 - shared functions
+
+```scala
+class NewsletterClient extends Actor {
+
+  override def receive: Receive = {
+    case Subscribe(user) =>
+      newClient() ! SubscriberCreate(Subscriber(user))
+      context.setReceiveTimeout(30.millis)
+      context.become(subscribing)
+  }
+  def subscribing: Receive = handleTimeout orElse {
+    case Response(x) => ...
+  }
+  def unsubscribing: Receive = handleTimeout orElse {
+    case Response(y) => ...
+  }
+  def handleTimeout: Receive = {
+    case ReceiveTimeout => ...
+  }
+
+  private def newClient() = ...
+}
+
+```
 
 ---
 
@@ -311,43 +354,115 @@ class UnhandledMessageWatcherSpec extends TestKit(ActorSystem("UnhandledMessageW
 
 ---
 
-### Long timeouts, overriding config
+### Long timeouts, overriding config [TODO]
 - ask pattern
-
 
 ---
 
-### Composing/linking actors
-- long living actors
-- ad-hoc created actors
-- factories
+### Composing/linking actors - long living actors
+
+```scala
+class UserService(newsletterService: ActorRef) extends Actor with ActorLogging { ... }
+```
+
+```scala
+object UserServiceSpec {
+  abstract class Test(implicit val system: ActorSystem) {
+    val newsletterService = TestProbe()
+    val userService: ActorRef = system.actorOf(UserService.props(newsletterService.ref))
+  }
+}
+```
+
+```scala
+class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
+  import UserServiceSpec._
+
+  "UserService" should "create user" in new Test {
+    userService ! UserService.AddOne(NewUser("new user", "newuser@test.com"))
+
+    val oneUser = expectMsgType[UserService.OneUser]
+    oneUser.user.name shouldBe "new user"
+
+    newsletterService.expectMsg(NewsletterService.Subscribe(oneUser.user))
+
+    userService ! UserService.GetOne(oneUser.user.id)
+    expectMsg(UserService.OneUser(oneUser.user))
+  }
+}
+```
+
+---
+
+### Composing/linking actors - ad-hoc created actors/objects
+
+```scala
+
+object NewsletterClient {
+  type NewsletterClientFactory = RestServiceConfig => NewsletterClient
+
+  def defaultFactory: NewsletterClientFactory =
+    config => new NewsletterClient(config, system)
+}
+
+class NewsletterClient(val config: RestServiceConfig) extends Actor { ... }
+
+```
+
+---
+### Composing/linking actors - ad-hoc created actors/objects
+
+```scala
+object NewsletterService {
+
+  def props(restServiceConfig: RestServiceConfig,
+            clientFactory: NewsletterClientFactory = NewsletterClient.defaultFactory): Props =
+    Props(new NewsletterService(restServiceConfig, clientFactory))
+}
+
+class NewsletterService(restServiceConfig: RestServiceConfig,
+                        clientFactory: NewsletterClientFactory)
+    extends Actor with ActorLogging {
+
+  override def receive: Receive = {
+    case Subscribe(user) =>
+      newClient() ! SubscriberCreate(Subscriber(user))
+
+    case Unsubscribe(userId) =>
+      newClient() ! SubscriberDelete(userId)
+  }
+
+  private def newClient() = clientFactory(restServiceConfig)
+}
+```
+
 ---
 
 ### Futures, pipe [TODO]
 
 ---
 
-# API testing
-- reason
-- setup
-- docker [TODO]
-
----
-
-# Integration testing
-- reason
-- setup
-- docker [TODO]
-
----
-class: center, middle
-# Difference with mocking/stubbing
-
----
 class: middle
->>>>>>># What next?
+>>>>>>>#  API testing
+- reason
+- setup
+- docker [TODO]
 
->>>>- Find the project on github
+---
+
+class: middle
+>>>>># Integration testing
+- reason
+- setup
+- docker [TODO]
+- Mocking/stubbing external APIs
+
+---
+
+class: middle
+>>>>>># What next?
+
+>>>>- Fork the project on github
   https://github.com/tpalanga/akka-http-microservice
 - Join me and contribute - PRs/feedback
 - TODO: Akka cluster
