@@ -65,6 +65,19 @@ class: center, middle
 ### Actor testing - actor implementation
 
 ```scala
+object SubscriberService {
+
+  sealed trait Request
+  case class GetOne(id: UserId) extends Request
+  case class AddOne(subscriber: Subscriber) extends Request
+
+  sealed trait GetSubscriberResponse
+  case class OneSubscriber(subscriber: Subscriber) extends GetSubscriberResponse
+  case class NotFound(id: UserId) extends GetSubscriberResponse
+
+  def props() = Props(new SubscriberService)
+}
+
 class SubscriberService extends Actor {
   private var subscribers: Map[UserId, Subscriber] = Map.empty
 
@@ -94,7 +107,8 @@ object SubscriberServiceSpec {
     )
     val createdSubscribers = newSubscribers.map { subscriber =>
       subscriberService.tell(SubscriberService.AddOne(subscriber), requester.ref)
-      val createdSubscriber = requester.expectMsgType[SubscriberService.OneSubscriber]
+      val createdSubscriber =
+        requester.expectMsgType[SubscriberService.OneSubscriber]
       createdSubscriber.subscriber.name shouldBe subscriber.name
       createdSubscriber.subscriber
     }
