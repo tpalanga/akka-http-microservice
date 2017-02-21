@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing microservices built with Akka HTTP and Akka actors</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+</head>
+<body>
+<textarea id="source">
+class: center, middle
+
+# Testing microservices built with Akka HTTP and Akka actors
+
+---
+
+class: middle
+
+>>>>>># Agenda
+- Introduction
+- Background, reason
+- Unit testing
+- API testing
+- Integration testing
+- What next
+- Questions
+
+---
+
+class: middle
+
+>>>>>># Introduction
+
+---
+
+class: middle
+
+>>>># Background and reason
+- Akka actors are not typed
+- Actor behaviour can mutate
+- Maintaining API contracts
+- Sparse testing documentation
+- What this is not
+
+---
+class: center, middle
+
+# Unit testing
+
+---
+### Actor testing - actor implementation
+
+```scala
+class SubscriberService extends Actor {
+  private var subscribers: Map[UserId, Subscriber] = Map.empty
+
+  override def receive: Receive = {
+    case GetOne(id) =>
+      sender() ! subscribers.get(id).map(OneSubscriber).getOrElse(NotFound(id))
+  }
+}
+```
+
+---
+### Actor testing - test setup
+
+```scala
+object SubscriberServiceSpec {
+
+  abstract class Test(implicit val system: ActorSystem) {
+    val subscriberService: ActorRef = system.actorOf(SubscriberService.props())
+  }
+
+  trait TestWithCreatedSubscribers extends Test with Matchers {
+    val requester = TestProbe()
+    val newSubscribers = Seq(
+      Subscriber("u01", "user 1", "user1@test.com"),
+      Subscriber("u02", "user 2", "user2@test.com"),
+      Subscriber("u03", "user 3", "user3@test.com")
+    )
+    val createdSubscribers = newSubscribers.map { subscriber =>
+      subscriberService.tell(SubscriberService.AddOne(subscriber), requester.ref)
+      val createdSubscriber = requester.expectMsgType[SubscriberService.OneSubscriber]
+      createdSubscriber.subscriber.name shouldBe subscriber.name
+      createdSubscriber.subscriber
+    }
+  }
+}
+
+```
+---
+### Actor testing - test cases
+
+```scala
+class SubscriberServiceSpec extends TestKit(ActorSystem("SubscriberServiceSpec"))
+    with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
+  import SubscriberServiceSpec._
+
+  "SubscriberService" should "retrieve a subscriber that already exists" in
+      new TestWithCreatedSubscribers {
+    val testSubscriber = createdSubscribers.headOption.value
+    subscriberService ! SubscriberService.GetOne(testSubscriber.id)
+    expectMsg(SubscriberService.OneSubscriber(testSubscriber))
+  }
+
+  it should "reply NotFound when attempting to retrieve a subscriber that does not exist" in
+      new TestWithCreatedSubscribers {
+    val testSubscriber = createdSubscribers.headOption.value
+    subscriberService ! SubscriberService.GetOne("unknown")
+    expectMsg(SubscriberService.NotFound("unknown"))
+  }
+}
+```
+
+
+
+
+
+
+
+
+
+</textarea>
+<script src="remark-latest.min.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+</body>
+</html>
