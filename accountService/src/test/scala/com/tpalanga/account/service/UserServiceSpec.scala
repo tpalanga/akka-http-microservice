@@ -29,7 +29,7 @@ object UserServiceSpec {
   }
 }
 
-class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
+class UserServiceSpec extends TestKit(ActorSystem("UserServiceSpec")) with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
   import UserServiceSpec._
 
   "UserService" should "create user" in new Test {

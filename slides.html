@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing microservices built with Akka HTTP and Akka actors</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+</head>
+<body>
+<textarea id="source">
+class: center, middle
+
+# Testing microservices
+### built with Akka HTTP and Akka actors
+
+---
+
+class: middle
+
+>>>>>># Introduction
+
+>>>- Software Consultant based in London
+- Building software for over 15 years
+- Fullstack, lately more backend
+- Started with Scala a bit over 3 years ago
+- Currently at Hotels.com in the SEM-Tools team
+- Twitter: @TudorPalanga
+- Github: https://github.com/tpalanga
+
+---
+
+class: middle
+
+>>>>>>># Agenda
+
+>>>>>>- Background, reason
+- Project structure
+- Unit testing
+- API testing
+- Integration testing
+- What next
+- Questions
+
+---
+
+class: middle
+
+>>>># Background and reason
+- Akka actors are not typed
+- Actor behaviour can mutate
+- Maintaining API contracts
+- Sparse testing documentation
+- What this is not
+
+---
+
+class: middle
+
+>>>>># Project structure
+- accountService
+- newsletterService
+
+
+>>>>>- accountServiceTest
+- newsletterServiceTest
+
+
+>>>>>- testLib
+
+
+>>> https://github.com/tpalanga/akka-http-microservice
+
+---
+
+class: center, middle
+
+# Unit testing
+
+---
+
+### Actor testing - actor implementation
+
+```scala
+object SubscriberService {
+
+  sealed trait Request
+  case class GetOne(id: UserId) extends Request
+  case class AddOne(subscriber: Subscriber) extends Request
+
+  sealed trait GetSubscriberResponse
+  case class OneSubscriber(subscriber: Subscriber) extends GetSubscriberResponse
+  case class NotFound(id: UserId) extends GetSubscriberResponse
+
+  def props() = Props(new SubscriberService)
+}
+
+class SubscriberService extends Actor {
+  private var subscribers: Map[UserId, Subscriber] = Map.empty
+
+  override def receive: Receive = {
+    case GetOne(id) =>
+      sender() ! subscribers.get(id).map(OneSubscriber).getOrElse(NotFound(id))
+  }
+}
+```
+
+---
+
+### Actor testing - test setup
+
+```scala
+object SubscriberServiceSpec {
+
+  abstract class Test(implicit val system: ActorSystem) {
+    val subscriberService: ActorRef = system.actorOf(SubscriberService.props())
+  }
+
+  trait TestWithCreatedSubscribers extends Test with Matchers {
+    val requester = TestProbe()
+    val newSubscribers = Seq(
+      Subscriber("u01", "user 1", "user1@test.com"),
+      Subscriber("u02", "user 2", "user2@test.com"),
+      Subscriber("u03", "user 3", "user3@test.com")
+    )
+    val createdSubscribers = newSubscribers.map { subscriber =>
+      subscriberService.tell(SubscriberService.AddOne(subscriber), requester.ref)
+      val createdSubscriber =
+        requester.expectMsgType[SubscriberService.OneSubscriber]
+      createdSubscriber.subscriber.name shouldBe subscriber.name
+      createdSubscriber.subscriber
+    }
+  }
+}
+
+```
+---
+
+### Actor testing - test cases
+
+```scala
+class SubscriberServiceSpec extends TestKit(ActorSystem("SubscriberServiceSpec"))
+    with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
+  import SubscriberServiceSpec._
+
+  "SubscriberService" should "retrieve a subscriber that already exists" in
+      new TestWithCreatedSubscribers {
+    val testSubscriber = createdSubscribers.headOption.value
+    subscriberService ! SubscriberService.GetOne(testSubscriber.id)
+    expectMsg(SubscriberService.OneSubscriber(testSubscriber))
+  }
+
+  it should "reply NotFound when attempting to retrieve a subscriber that does not exist" in
+      new TestWithCreatedSubscribers {
+    subscriberService ! SubscriberService.GetOne("unknown")
+    expectMsg(SubscriberService.NotFound("unknown"))
+  }
+}
+```
+
+---
+
+### Route testing - implementation
+
+```scala
+class SubscriberRoute(subscriberService: ActorRef) extends SprayJsonSupport {
+  import Subscriber.DataFormats._
+  import SubscriberService.DataFormats._
+
+  implicit val askTimeout = Timeout(3.seconds)
+
+  val route: Route =
+    pathPrefix("data" / "subscribers") {
+      path(Segment) { id =>
+        pathEnd {
+          get {
+            // get id
+            onComplete((subscriberService ? SubscriberService.GetOne(id))
+                .mapTo[SubscriberService.GetSubscriberResponse]) {
+              case Success(oneSubscriber: SubscriberService.OneSubscriber) =>
+                complete(oneSubscriber.subscriber)
+
+              case Success(SubscriberService.NotFound(_)) =>
+                complete(StatusCodes.NotFound, s"Subscriber with ID $id not found")
+
+              case Failure(th) =>
+                complete(StatusCodes.InternalServerError, s"$msg: ${th.getMessage}")
+            }
+          }
+        } ~
+        put { ... }
+    ...
+  }
+```
+
+---
+
+### Route testing - unit test
+
+```scala
+object SubscriberRouteSpec {
+  val userId = "ABC-123"
+  val testSubscriber = Subscriber(userId, "my test user", "test@test.com")
+
+  abstract class Test(implicit system: ActorSystem) {
+    protected val subscriberService = TestProbe()
+    protected val route: Route = new SubscriberRoute(subscriberService.ref).route
+  }
+}
+
+class SubscriberRouteSpec extends WordSpec with ScalatestRouteTest
+    with SprayJsonSupport with Matchers with Eventually {
+  import Subscriber.DataFormats._
+  import SubscriberRouteSpec._
+
+  implicit override val patienceConfig =
+    PatienceConfig(timeout = scaled(Span(2, Seconds)),
+                  interval = scaled(Span(100, Millis)))
+
+  "SubscriberRoute" when {
+    "receiving a subscriber GET request" should {
+      "respond with the subscriber data if the subscriber exists" in new Test {
+        Get(s"/data/subscribers/$userId") ~> route ~> check {
+          subscriberService.expectMsg(SubscriberService.GetOne(userId))
+          subscriberService.reply(SubscriberService.OneSubscriber(testSubscriber))
+          eventually { status shouldEqual StatusCodes.OK }
+          responseAs[Subscriber] should be(testSubscriber)
+        }
+      }
+  ...
+}
+```
+
+---
+
+### Code coverage
+
+```bash
+  sbt "; project newsletterService; clean; coverage; test; coverageReport"
+```
+Generates the HTML/XML/Cobertura report in:
+
+```bash
+  newsletterService/target/scala-2.11/scoverage-report/
+```
+---
+
+### What code coverage doesn't show
+- shared partial functions between states
+  >(error/timeout handling)
+
+```scala
+class NewsletterClient extends Actor {
+
+  override def receive: Receive = {
+    case Subscribe(user) =>
+      newClient() ! SubscriberCreate(Subscriber(user))
+      context.setReceiveTimeout(30.millis)
+      context.become(subscribing)
+  }
+  def subscribing: Receive = handleTimeout orElse {
+    case Response(x) => ...
+  }
+  def unsubscribing: Receive = handleTimeout orElse {
+    case Response(y) => ...
+  }
+  def handleTimeout: Receive = {
+    case ReceiveTimeout => ...
+  }
+
+  private def newClient() = ...
+}
+
+```
+
+---
+
+### Message not handled - override unhandled
+```scala
+class SubscriberService extends Actor with ActorLogging {
+
+  override def receive: Receive = {
+    ...
+  }
+
+  override def unhandled(msg: Any) {
+    log.warning(s"Unhandled message $msg")
+    super.unhandled(msg)
+  }
+}
+
+```
+
+---
+
+### Message not handled - subscribe to events
+
+```scala
+class UnhandledMessageWatcher extends Actor with ActorLogging {
+
+  context.system.eventStream.subscribe(self, classOf[DeadLetter])
+  context.system.eventStream.subscribe(self, classOf[UnhandledMessage])
+
+  override def receive: Receive = {
+    case UnhandledMessage(msg, msgSender, recipient) =>
+      log.error(s"UnhandledMessage: $msgSender sent $msg to $recipient")
+
+    case DeadLetter(msg, msgSender, recipient) =>
+      log.warning(s"DeadLetter: $msgSender sent $msg to $recipient")
+  }
+}
+```
+
+---
+
+```scala
+object UnhandledMessageWatcherSpec {
+
+  abstract class Test(implicit system: ActorSystem) {
+    val watcher = system.actorOf(UnhandledMessageWatcher.props())
+    val logProbe = TestProbe()
+    system.eventStream.subscribe(logProbe.ref, classOf[LogEvent])
+
+    val destination = system.actorOf(Props(new Actor {
+      override def receive: Receive = {
+        case 'Handled =>
+      }
+    }))
+
+  }
+}
+
+class UnhandledMessageWatcherSpec extends TestKit(ActorSystem("UnhandledMessageWatcherSpec")) with FlatSpecLike with Matchers with ImplicitSender {
+  import UnhandledMessageWatcherSpec._
+
+  "UnhandledMessageWatcher" should "log unhandled messages" in new Test {
+    destination ! 'Unhandled
+
+    val event = logProbe.fishForMessage() {
+      case akka.event.Logging.Error(_, _, _, msg)
+          if msg.toString startsWith "UnhandledMessage:" =>
+        true
+      case _ =>
+        false
+    }
+  }
+}
+```
+
+---
+
+### Composing/linking actors - long living actors
+
+```scala
+class UserService(newsletterService: ActorRef) extends Actor { ... }
+```
+
+```scala
+object UserServiceSpec {
+  abstract class Test(implicit val system: ActorSystem) {
+    val newsletterService = TestProbe()
+    val userService: ActorRef =
+      system.actorOf(UserService.props(newsletterService.ref))
+  }
+}
+```
+
+```scala
+class UserServiceSpec extends TestKit(ActorSystem("UserServiceSpec"))
+    with FlatSpecLike with Matchers with ImplicitSender {
+  import UserServiceSpec._
+
+  "UserService" should "create user" in new Test {
+    userService ! UserService.AddOne(NewUser("new user", "newuser@test.com"))
+
+    val oneUser = expectMsgType[UserService.OneUser]
+    oneUser.user.name shouldBe "new user"
+
+    newsletterService.expectMsg(NewsletterService.Subscribe(oneUser.user))
+
+    userService ! UserService.GetOne(oneUser.user.id)
+    expectMsg(UserService.OneUser(oneUser.user))
+  }
+}
+```
+
+---
+
+### Composing/linking actors - ad-hoc created actors/objects
+
+```scala
+
+object NewsletterClient {
+  type NewsletterClientFactory = RestServiceConfig => NewsletterClient
+
+  def defaultFactory: NewsletterClientFactory =
+    config => new NewsletterClient(config, system)
+}
+
+class NewsletterClient(val config: RestServiceConfig) extends Actor { ... }
+
+```
+
+---
+
+### Composing/linking actors - ad-hoc created actors/objects
+
+```scala
+object NewsletterService {
+
+  def props(restServiceConfig: RestServiceConfig,
+      clientFactory: NewsletterClientFactory =
+        NewsletterClient.defaultFactory): Props =
+    Props(new NewsletterService(restServiceConfig, clientFactory))
+}
+
+class NewsletterService(restServiceConfig: RestServiceConfig,
+                        clientFactory: NewsletterClientFactory)
+    extends Actor with ActorLogging {
+
+  override def receive: Receive = {
+    case Subscribe(user) =>
+      newClient() ! SubscriberCreate(Subscriber(user))
+
+    case Unsubscribe(userId) =>
+      newClient() ! SubscriberDelete(userId)
+  }
+
+  private def newClient() = clientFactory(restServiceConfig)
+}
+```
+
+---
+
+### Composing/linking actors - ad-hoc created actors/objects - test
+
+```scala
+
+object NewsletterServiceSpec {
+  val testUser = User("ABC-123", "new user", "newuser@test.com")
+
+  abstract class Test(implicit val system: ActorSystem) {
+    val newsletterClient = TestProbe()
+    def testClientFactory: NewsletterClientFactory = (_) => newsletterClient.ref
+    val newsletterService: ActorRef =
+      system.actorOf(NewsletterService.props(testClientFactory))
+  }
+}
+
+class NewsletterServiceSpec extends TestKit(ActorSystem("NewsletterServiceSpec"))
+    with FlatSpecLike with Matchers with ImplicitSender {
+  import NewsletterServiceSpec._
+
+  "NewsletterService" should "subscribe to the newsletter backend" in new Test {
+    newsletterService ! Subscribe(testUser)
+    newsletterClient.expectMsg(
+      SubscriberCreate(Subscriber("ABC-123", "new user", "newuser@test.com")))
+  }
+}
+```
+
+---
+
+class: middle
+>>>>>>>#  API testing
+- reason
+- setup
+
+---
+
+class: middle
+>>>>># Integration testing
+- reason
+- setup
+- Mocking/stubbing external APIs
+
+---
+
+class: middle
+>>>>>># What next?
+
+>>>>- Fork the project on github
+  https://github.com/tpalanga/akka-http-microservice
+- Join me and contribute - PRs/feedback
+- TODO: use docker
+- TODO: Akka cluster
+
+---
+
+class: center, middle
+# Questions?
+
+</textarea>
+<script src="remark-latest.min.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+</body>
+</html>
