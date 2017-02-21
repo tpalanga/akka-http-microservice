@@ -6,6 +6,8 @@ import com.tpalanga.test.newsletter.api.subscriber.NewsletterServiceRestServiceC
 import com.tpalanga.test.spec.RestSpec
 import org.scalatest.{AsyncFlatSpec, Matchers}
 
+import scala.concurrent.Future
+
 object UserSpec {
 
   def newUUID(): String = java.util.UUID.randomUUID.toString
@@ -31,11 +33,11 @@ class UserSpec extends AsyncFlatSpec with Matchers with RestSpec {
 
   it should "create user and subscribe to newsletter" in {
     val newUser = createNewUser()
-    println(newUser)
 
     for {
       replyCreate <- account.userCreate(newUser)
       user <- replyCreate.entity
+      _ <- Future(Thread.sleep(200))
       replySubscriberRetrieve <- newsletter.subscriberRetrieve(user.id)
       _ = replySubscriberRetrieve.status shouldBe StatusCodes.OK
       subscriber <- replySubscriberRetrieve.entity
@@ -95,6 +97,9 @@ class UserSpec extends AsyncFlatSpec with Matchers with RestSpec {
 
       replyDelete <- account.userDelete(user.id)
       _ = replyDelete.status shouldBe StatusCodes.OK
+      _ <- Future(Thread.sleep(200))
+      replySubscriberRetrieve <- newsletter.subscriberRetrieve(user.id)
+      _ = replySubscriberRetrieve.status shouldBe StatusCodes.NotFound
 
       replyRetrieve <- account.userRetrieve(user.id)
     } yield {

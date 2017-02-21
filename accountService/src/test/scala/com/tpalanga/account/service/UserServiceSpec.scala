@@ -8,7 +8,8 @@ import org.scalatest.{FlatSpecLike, Matchers, OptionValues}
 object UserServiceSpec {
 
   abstract class Test(implicit val system: ActorSystem) {
-    val userDataStore: ActorRef = system.actorOf(UserService.props())
+    val newsletterService = TestProbe()
+    val userService: ActorRef = system.actorOf(UserService.props(newsletterService.ref))
   }
 
   trait TestWithCreatedUsers extends Test with Matchers {
@@ -19,9 +20,10 @@ object UserServiceSpec {
       NewUser("user 3", "user3@test.com")
     )
     val createdUsers = newUsers.map { user =>
-      userDataStore.tell(UserService.AddOne(user), requester.ref)
+      userService.tell(UserService.AddOne(user), requester.ref)
       val createdUser = requester.expectMsgType[UserService.OneUser]
       createdUser.user.name shouldBe user.name
+      newsletterService.expectMsg(NewsletterService.Subscribe(createdUser.user))
       createdUser.user
     }
   }
@@ -31,34 +33,36 @@ class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with Fla
   import UserServiceSpec._
 
   "UserService" should "create user" in new Test {
-    userDataStore ! UserService.AddOne(NewUser("new user", "newuser@test.com"))
+    userService ! UserService.AddOne(NewUser("new user", "newuser@test.com"))
 
     val oneUser = expectMsgType[UserService.OneUser]
     oneUser.user.name shouldBe "new user"
 
-    userDataStore ! UserService.GetOne(oneUser.user.id)
+    newsletterService.expectMsg(NewsletterService.Subscribe(oneUser.user))
+
+    userService ! UserService.GetOne(oneUser.user.id)
     expectMsg(UserService.OneUser(oneUser.user))
   }
 
   it should "reply user already exists when attempting to add an user with a duplicate name" in new TestWithCreatedUsers {
-    userDataStore ! UserService.AddOne(NewUser("user 1", "user1@test.com"))
+    userService ! UserService.AddOne(NewUser("user 1", "user1@test.com"))
     expectMsg(UserService.AlreadyExists)
   }
 
   it should "retrieve an user that already exists" in new TestWithCreatedUsers {
     val testUser = createdUsers.headOption.value
-    userDataStore ! UserService.GetOne(testUser.id)
+    userService ! UserService.GetOne(testUser.id)
     expectMsg(UserService.OneUser(testUser))
   }
 
   it should "reply NotFound when attempting to retrieve a user that does not exist" in new TestWithCreatedUsers {
     val testUser = createdUsers.headOption.value
-    userDataStore ! UserService.GetOne("unknown")
+    userService ! UserService.GetOne("unknown")
     expectMsg(UserService.NotFound("unknown"))
   }
 
   it should "retrieve all users" in new TestWithCreatedUsers {
-    userDataStore ! UserService.GetAll
+    userService ! UserService.GetAll
     val allUsers = expectMsgType[UserService.AllUsers]
     allUsers.users should contain theSameElementsAs createdUsers
   }
@@ -66,30 +70,32 @@ class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with Fla
   it should "update user" in new TestWithCreatedUsers {
     val testUser = createdUsers.headOption.value
     val updatedUser = testUser.copy(name = "renamed")
-    userDataStore ! UserService.Update(updatedUser)
+    userService ! UserService.Update(updatedUser)
     expectMsg(UserService.OneUser(updatedUser))
 
-    userDataStore ! UserService.GetOne(updatedUser.id)
+    userService ! UserService.GetOne(updatedUser.id)
     expectMsg(UserService.OneUser(updatedUser))
   }
 
   it should "reply NotFound when attempting to update an inexistent user" in new TestWithCreatedUsers {
     val updatedUser = User("unknown", "renamed", "unknown@test.com")
-    userDataStore ! UserService.Update(updatedUser)
+    userService ! UserService.Update(updatedUser)
     expectMsg(UserService.NotFound("unknown"))
   }
 
   it should "delete user" in new TestWithCreatedUsers {
     val testUser = createdUsers.headOption.value
-    userDataStore ! UserService.Delete(testUser.id)
+    userService ! UserService.Delete(testUser.id)
     expectMsg(UserService.Deleted(testUser.id))
 
-    userDataStore ! UserService.GetOne(testUser.id)
+    newsletterService.expectMsg(NewsletterService.Unsubscribe(testUser.id))
+
+    userService ! UserService.GetOne(testUser.id)
     expectMsg(UserService.NotFound(testUser.id))
   }
 
   it should "reply NotFound when attempting to delete an inexistent user" in new TestWithCreatedUsers {
-    userDataStore ! UserService.Delete("unknown")
+    userService ! UserService.Delete("unknown")
     expectMsg(UserService.NotFound("unknown"))
   }
 }

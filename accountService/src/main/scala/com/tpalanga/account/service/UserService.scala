@@ -1,6 +1,6 @@
 package com.tpalanga.account.service
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.tpalanga.account.model.{NewUser, User, UserId}
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
@@ -33,15 +33,14 @@ object UserService {
     implicit val allUsersFormat: RootJsonFormat[AllUsers] = jsonFormat1(AllUsers)
   }
 
-  def props() = Props(new UserService)
+  def props(newsletterService: ActorRef) = Props(new UserService(newsletterService))
 
   def newUUID(): String = java.util.UUID.randomUUID.toString
 }
 
-class UserService extends Actor with ActorLogging {
+class UserService(newsletterService: ActorRef) extends Actor with ActorLogging {
   import UserService._
 
-  // TODO (TP): change state handling to become() style
   private var users: Map[UserId, User] = Map.empty
 
   override def receive: Receive = {
@@ -57,6 +56,7 @@ class UserService extends Actor with ActorLogging {
         .getOrElse {
           val user = User.fromNewUser(newUUID(), newUser)
           users = users + (user.id -> user)
+          newsletterService ! NewsletterService.Subscribe(user)
           OneUser(user)
         }
       sender() ! reply
@@ -71,6 +71,7 @@ class UserService extends Actor with ActorLogging {
     case Delete(id) =>
       val reply = users.get(id).map { _ =>
         users = users - id
+        newsletterService ! NewsletterService.Unsubscribe(id)
         Deleted(id)
       }.getOrElse(NotFound(id))
       sender() ! reply

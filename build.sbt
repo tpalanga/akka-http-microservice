@@ -33,6 +33,7 @@ lazy val accountService = project.
     commonSettings,
     libraryDependencies ++= commonDependencies ++ testingDependencies
   )
+  .dependsOn(testLib)
 
 lazy val accountServiceTest = project.
   settings(
