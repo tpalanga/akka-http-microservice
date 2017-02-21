@@ -19,14 +19,16 @@
 <textarea id="source">
 class: center, middle
 
-# Testing microservices built with Akka HTTP and Akka actors
+# Testing microservices
+### built with Akka HTTP and Akka actors
 
 ---
 
 class: middle
 
->>>>>># Agenda
-- Introduction
+>>>>>>># Agenda
+
+>>>>>>- Introduction
 - Background, reason
 - Unit testing
 - API testing
@@ -38,12 +40,13 @@ class: middle
 
 class: middle
 
->>>># Introduction
-- Building software for over 15 years
+>>>>>># Introduction
+
+>- Building software for over 15 years
 - Fullstack, lately more backend
 - Currently at Hotels.com in the SEM Tools team
-- Twitter @TudorPalanga
-- Github: https://github.com/tpalanga/akka-http-microservice
+- Twitter: @TudorPalanga
+- Github: https://github.com/tpalanga
 
 ---
 
@@ -140,13 +143,151 @@ class SubscriberServiceSpec extends TestKit(ActorSystem("SubscriberServiceSpec")
 }
 ```
 
+---
+### Route testing - implementation
+
+```scala
+class SubscriberRoute(subscriberService: ActorRef) extends SprayJsonSupport {
+  import Subscriber.DataFormats._
+  import SubscriberService.DataFormats._
+
+  implicit val askTimeout = Timeout(3.seconds)
+
+  val route: Route =
+    pathPrefix("data" / "subscribers") {
+      path(Segment) { id =>
+        pathEnd {
+          get {
+            // get id
+            onComplete((subscriberService ? SubscriberService.GetOne(id))
+                .mapTo[SubscriberService.GetSubscriberResponse]) {
+              case Success(oneSubscriber: SubscriberService.OneSubscriber) =>
+                complete(oneSubscriber.subscriber)
+
+              case Success(SubscriberService.NotFound(_)) =>
+                complete(StatusCodes.NotFound, s"Subscriber with ID $id not found")
+
+              case Failure(th) =>
+                complete(StatusCodes.InternalServerError, s"$msg: ${th.getMessage}")
+            }
+          }
+        } ~
+        put { ... }
+    ...
+  }
+```
+
+---
+### Route testing - unit test
+
+```scala
+object SubscriberRouteSpec {
+  val userId = "ABC-123"
+  val testSubscriber = Subscriber(userId, "my test user", "test@test.com")
+
+  abstract class Test(implicit system: ActorSystem) {
+    protected val subscriberService = TestProbe()
+    protected val route: Route = new SubscriberRoute(subscriberService.ref).route
+  }
+}
+
+class SubscriberRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSupport with Matchers with Eventually {
+  import Subscriber.DataFormats._
+  import SubscriberRouteSpec._
+
+  implicit override val patienceConfig = PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(100, Millis)))
+  private val longPatienceConfig = PatienceConfig(timeout = scaled(Span(5, Seconds)), interval = scaled(Span(100, Millis)))
+
+  "SubscriberRoute" when {
+    "receiving a subscriber GET request" should {
+      "respond with the subscriber data if the subscriber exists" in new Test {
+        Get(s"/data/subscribers/$userId") ~> route ~> check {
+          subscriberService.expectMsg(SubscriberService.GetOne(userId))
+          subscriberService.reply(SubscriberService.OneSubscriber(testSubscriber))
+          eventually { status shouldEqual StatusCodes.OK }
+          responseAs[Subscriber] should be(testSubscriber)
+        }
+      }
+  ...
+}
+```
+
+---
+### Code coverage
+
+```bash
+  sbt "; project newsletterService; clean; coverage; test; coverageReport"
+```
+Generates the HTML/XML/Cobertura report in:
+
+```bash
+  newsletterService/target/scala-2.11/scoverage-report/
+```
+---
+
+### What code coverage doesn't show
+- shared partial functions between states
+  >(error/timeout handling)
+- shared functions
+
+---
+
+### Message not handled - override unhandled
+---
+
+### Message not handled - subscribe to events
+
+---
+
+### Race conditions [TODO]
+- messages changing states
+
+---
+
+### Long timeouts, overriding config
+- ask pattern
 
 
+---
 
+### Composing/linking actors
+- long living actors
+- ad-hoc created actors
+- factories
+---
 
+### Futures, pipe [TODO]
 
+---
 
+# API testing
+- reason
+- setup
+- docker [TODO]
 
+---
+
+# Integration testing
+- reason
+- setup
+- docker [TODO]
+
+---
+class: center, middle
+# Difference with mocking/stubbing
+
+---
+class: middle
+>>>>>>># What next?
+
+>>>>- Find the project on github
+  https://github.com/tpalanga/akka-http-microservice
+- Join me and contribute - PRs/feedback
+- TODO: Akka cluster
+
+---
+class: center, middle
+# Questions?
 
 </textarea>
 <script src="remark-latest.min.js" type="text/javascript">
