@@ -26,28 +26,28 @@ class: center, middle
 
 class: middle
 
->>>>>>># Agenda
-
->>>>>>- Introduction
-- Background, reason
-- Unit testing
-- API testing
-- Integration testing
-- What next
-- Questions
-
----
-
-class: middle
-
 >>>>>># Introduction
 
 >>>- Building software for over 15 years
 - Fullstack, lately more backend
 - Moved to Scala from Java a bit over 2 years ago
-- Currently at Hotels.com in the SEM Tools team
+- Currently at Hotels.com in the SEM-Tools team
 - Twitter: @TudorPalanga
 - Github: https://github.com/tpalanga
+
+---
+
+class: middle
+
+>>>>>>># Agenda
+
+>>>>>>- Background, reason
+- Project structure
+- Unit testing
+- API testing
+- Integration testing
+- What next
+- Questions
 
 ---
 
@@ -66,10 +66,17 @@ class: middle
 
 >>>>># Project structure
 - accountService
-- accountServiceTest
 - newsletterService
+
+
+>>>>>- accountServiceTest
 - newsletterServiceTest
-- testLib
+
+
+>>>>>- testLib
+
+
+>>> https://github.com/tpalanga/akka-http-microservice
 
 ---
 
@@ -152,7 +159,6 @@ class SubscriberServiceSpec extends TestKit(ActorSystem("SubscriberServiceSpec")
 
   it should "reply NotFound when attempting to retrieve a subscriber that does not exist" in
       new TestWithCreatedSubscribers {
-    val testSubscriber = createdSubscribers.headOption.value
     subscriberService ! SubscriberService.GetOne("unknown")
     expectMsg(SubscriberService.NotFound("unknown"))
   }
@@ -209,12 +215,14 @@ object SubscriberRouteSpec {
   }
 }
 
-class SubscriberRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSupport with Matchers with Eventually {
+class SubscriberRouteSpec extends WordSpec with ScalatestRouteTest
+    with SprayJsonSupport with Matchers with Eventually {
   import Subscriber.DataFormats._
   import SubscriberRouteSpec._
 
-  implicit override val patienceConfig = PatienceConfig(timeout = scaled(Span(2, Seconds)), interval = scaled(Span(100, Millis)))
-  private val longPatienceConfig = PatienceConfig(timeout = scaled(Span(5, Seconds)), interval = scaled(Span(100, Millis)))
+  implicit override val patienceConfig =
+    PatienceConfig(timeout = scaled(Span(2, Seconds)),
+                  interval = scaled(Span(100, Millis)))
 
   "SubscriberRoute" when {
     "receiving a subscriber GET request" should {
@@ -247,7 +255,6 @@ Generates the HTML/XML/Cobertura report in:
 ### What code coverage doesn't show
 - shared partial functions between states
   >(error/timeout handling)
-- shared functions
 
 ```scala
 class NewsletterClient extends Actor {
@@ -349,33 +356,25 @@ class UnhandledMessageWatcherSpec extends TestKit(ActorSystem("UnhandledMessageW
 
 ---
 
-### Race conditions [TODO]
-- messages changing states
-
----
-
-### Long timeouts, overriding config [TODO]
-- ask pattern
-
----
-
 ### Composing/linking actors - long living actors
 
 ```scala
-class UserService(newsletterService: ActorRef) extends Actor with ActorLogging { ... }
+class UserService(newsletterService: ActorRef) extends Actor { ... }
 ```
 
 ```scala
 object UserServiceSpec {
   abstract class Test(implicit val system: ActorSystem) {
     val newsletterService = TestProbe()
-    val userService: ActorRef = system.actorOf(UserService.props(newsletterService.ref))
+    val userService: ActorRef =
+      system.actorOf(UserService.props(newsletterService.ref))
   }
 }
 ```
 
 ```scala
-class UserServiceSpec extends TestKit(ActorSystem("UserDataStoreSpec")) with FlatSpecLike with Matchers with ImplicitSender with OptionValues {
+class UserServiceSpec extends TestKit(ActorSystem("UserServiceSpec"))
+    with FlatSpecLike with Matchers with ImplicitSender {
   import UserServiceSpec._
 
   "UserService" should "create user" in new Test {
@@ -410,13 +409,15 @@ class NewsletterClient(val config: RestServiceConfig) extends Actor { ... }
 ```
 
 ---
+
 ### Composing/linking actors - ad-hoc created actors/objects
 
 ```scala
 object NewsletterService {
 
   def props(restServiceConfig: RestServiceConfig,
-            clientFactory: NewsletterClientFactory = NewsletterClient.defaultFactory): Props =
+      clientFactory: NewsletterClientFactory =
+        NewsletterClient.defaultFactory): Props =
     Props(new NewsletterService(restServiceConfig, clientFactory))
 }
 
@@ -438,7 +439,32 @@ class NewsletterService(restServiceConfig: RestServiceConfig,
 
 ---
 
-### Futures, pipe [TODO]
+### Composing/linking actors - ad-hoc created actors/objects - test
+
+```scala
+
+object NewsletterServiceSpec {
+  val testUser = User("ABC-123", "new user", "newuser@test.com")
+
+  abstract class Test(implicit val system: ActorSystem) {
+    val newsletterClient = TestProbe()
+    def testClientFactory: NewsletterClientFactory = (_) => newsletterClient.ref
+    val newsletterService: ActorRef =
+      system.actorOf(NewsletterService.props(testClientFactory))
+  }
+}
+
+class NewsletterServiceSpec extends TestKit(ActorSystem("NewsletterServiceSpec"))
+    with FlatSpecLike with Matchers with ImplicitSender {
+  import NewsletterServiceSpec._
+
+  "NewsletterService" should "subscribe to the newsletter backend" in new Test {
+    newsletterService ! Subscribe(testUser)
+    newsletterClient.expectMsg(
+      SubscriberCreate(Subscriber("ABC-123", "new user", "newuser@test.com")))
+  }
+}
+```
 
 ---
 
@@ -446,7 +472,6 @@ class: middle
 >>>>>>>#  API testing
 - reason
 - setup
-- docker [TODO]
 
 ---
 
@@ -454,7 +479,6 @@ class: middle
 >>>>># Integration testing
 - reason
 - setup
-- docker [TODO]
 - Mocking/stubbing external APIs
 
 ---
@@ -465,9 +489,11 @@ class: middle
 >>>>- Fork the project on github
   https://github.com/tpalanga/akka-http-microservice
 - Join me and contribute - PRs/feedback
+- TODO: use docker
 - TODO: Akka cluster
 
 ---
+
 class: center, middle
 # Questions?
 
