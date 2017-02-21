@@ -69,7 +69,7 @@ class UserRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSuppo
 
     "receiving a user POST request (create new user)" should {
       "respond with the user data" in new Test {
-        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user"}""")) ~> route ~> check {
+        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user", "email":"test@test.com"}""")) ~> route ~> check {
           userService.expectMsg(UserService.AddOne(newTestUser))
           userService.reply(UserService.OneUser(testUser))
           eventually {
@@ -80,7 +80,7 @@ class UserRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSuppo
       }
 
       "respond with validation rejection if the user already exists" in new Test {
-        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user"}""")) ~> route ~> check {
+        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user", "email":"test@test.com"}""")) ~> route ~> check {
           userService.expectMsg(UserService.AddOne(newTestUser))
           userService.reply(UserService.AlreadyExists)
           eventually {
@@ -92,7 +92,7 @@ class UserRouteSpec extends WordSpec with ScalatestRouteTest with SprayJsonSuppo
       "respond with status 500 if adding the user fails (times out)" in new Test {
         // this timeout should be longer than the ask timeout
         private implicit val patienceConfig = longPatienceConfig
-        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user"}""")) ~> route ~> check {
+        Post(s"/data/users", HttpEntity(ContentTypes.`application/json`, """{"name":"my test user", "email":"test@test.com"}""")) ~> route ~> check {
           userService.expectMsg(UserService.AddOne(newTestUser))
           eventually {
             status shouldEqual StatusCodes.InternalServerError
