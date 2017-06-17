@@ -2,8 +2,8 @@ package com.tpalanga.test.account.api.users
 
 import akka.http.scaladsl.model.StatusCodes
 import com.tpalanga.test.account.api.users.model.NewUser
-import com.tpalanga.test.newsletter.api.subscriber.NewsletterServiceRestServiceClientImpl
 import com.tpalanga.test.spec.RestSpec
+import com.tpalanga.testlib.test.client.impl.NewsletterServiceRestClient
 import org.scalatest.{AsyncFlatSpec, Matchers}
 
 import scala.concurrent.Future
@@ -22,8 +22,8 @@ object UserSpec {
 class UserSpec extends AsyncFlatSpec with Matchers with RestSpec {
   import UserSpec._
 
-  val newsletter = new NewsletterServiceRestServiceClientImpl()
-  val account = new AccountServiceRestServiceClientImpl()
+  val newsletter = new NewsletterServiceRestClient(testConfig.newsletterServiceConfig)
+  val account = new AccountServiceRestClient(testConfig.accountServiceConfig)
 
   "Dataservice" should "return 404 if a user does not exist" in {
     account.userRetrieve("unknown").map { reply =>

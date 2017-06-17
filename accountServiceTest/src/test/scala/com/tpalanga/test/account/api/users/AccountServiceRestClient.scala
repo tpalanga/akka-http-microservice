@@ -12,14 +12,13 @@ import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait AccountServiceRestServiceClient extends RestServiceClient with LazyLogging {
+class AccountServiceRestClient(val restServiceConfig: RestServiceConfig)
+                              (implicit val testConfig: TestConfig, val system: ActorSystem)
+extends RestServiceClient with LazyLogging {
   import NoEntity.DataFormats._
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
   import com.tpalanga.test.account.api.users.model.UserJsonProtocol._
 
-  val testConfig: TestConfig
-
-  override val restServiceConfig: RestServiceConfig = testConfig.accountServiceConfig
   logger.debug(s"AccountServiceRestServiceClient: $restServiceConfig")
   private implicit val materializer: Materializer = ActorMaterializer(ActorMaterializerSettings(system))
 
@@ -50,6 +49,3 @@ trait AccountServiceRestServiceClient extends RestServiceClient with LazyLogging
       Response[Users](httpResponse)
     }
 }
-
-class AccountServiceRestServiceClientImpl()(implicit val testConfig: TestConfig, val system: ActorSystem)
-  extends AccountServiceRestServiceClient

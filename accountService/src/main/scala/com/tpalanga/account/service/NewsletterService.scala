@@ -3,7 +3,8 @@ package com.tpalanga.account.service
 import akka.actor.{Actor, ActorLogging, Props, Status}
 import akka.http.scaladsl.model.StatusCodes
 import com.tpalanga.account.model.{User, UserId}
-import com.tpalanga.account.service.NewsletterClient.NewsletterClientFactory
+import com.tpalanga.testlib.test.client.impl.NewsletterServiceRestClient.NewsletterServiceRestClientFactory
+import com.tpalanga.testlib.test.client.impl.{NewsletterServiceRestClient, Subscriber}
 import com.tpalanga.testlib.test.client.{NoEntity, Response}
 import com.tpalanga.testlib.test.config.RestServiceConfig
 
@@ -14,18 +15,18 @@ object NewsletterService {
   case class CreateResponse(response: Response[Subscriber])
   case class DeleteResponse(response: Response[NoEntity])
 
-  def props(restServiceConfig: RestServiceConfig, clientFactory: NewsletterClientFactory = NewsletterClient.defaultFactory): Props =
+  def props(restServiceConfig: RestServiceConfig, clientFactory: NewsletterServiceRestClientFactory = NewsletterServiceRestClient.defaultFactory): Props =
     Props(new NewsletterService(restServiceConfig, clientFactory))
 }
 
-class NewsletterService(restServiceConfig: RestServiceConfig, clientFactory: NewsletterClientFactory) extends Actor with ActorLogging {
+class NewsletterService(restServiceConfig: RestServiceConfig, clientFactory: NewsletterServiceRestClientFactory) extends Actor with ActorLogging {
   import NewsletterService._
   import akka.pattern.pipe
   import context.dispatcher
 
   override def receive: Receive = {
     case Subscribe(user) =>
-      newClient().subscriberCreate(Subscriber(user)).map(CreateResponse) pipeTo self
+      newClient().subscriberCreate(Subscriber(user.id, user.name, user.email)).map(CreateResponse) pipeTo self
 
     case Unsubscribe(userId) =>
       newClient().subscriberDelete(userId).map(DeleteResponse) pipeTo self

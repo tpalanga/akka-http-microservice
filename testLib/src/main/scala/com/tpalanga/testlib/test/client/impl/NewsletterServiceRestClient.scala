@@ -1,4 +1,4 @@
-package com.tpalanga.account.service
+package com.tpalanga.testlib.test.client.impl
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling.Marshal
@@ -6,22 +6,27 @@ import akka.http.scaladsl.model.{ContentTypes, RequestEntity}
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import com.tpalanga.testlib.test.client.{NoEntity, Response, RestServiceClient}
 import com.tpalanga.testlib.test.config.RestServiceConfig
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object NewsletterClient {
-  type NewsletterClientFactory = (RestServiceConfig, ActorSystem) => NewsletterClient
 
-  def defaultFactory: NewsletterClientFactory =
-    (config, system) => new NewsletterClient(config, system)
+object NewsletterServiceRestClient {
+  type NewsletterServiceRestClientFactory = (RestServiceConfig, ActorSystem) => NewsletterServiceRestClient
+
+  def defaultFactory: NewsletterServiceRestClientFactory =
+    (config, system) => new NewsletterServiceRestClient(config)(system)
+
 }
 
-class NewsletterClient(val restServiceConfig: RestServiceConfig, val system: ActorSystem) extends RestServiceClient {
+class NewsletterServiceRestClient(val restServiceConfig: RestServiceConfig)
+                                 (implicit val system: ActorSystem)
+  extends RestServiceClient with LazyLogging {
   import NoEntity.DataFormats._
   import SubscriberJsonProtocol._
   import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 
-  private implicit val _system = system
+  logger.debug(s"NewsletterServiceRestServiceClient: $restServiceConfig")
   private implicit val materializer: Materializer = ActorMaterializer(ActorMaterializerSettings(system))
 
   def subscriberRetrieve(id: String)(implicit ec: ExecutionContext): Future[Response[Subscriber]] =
@@ -35,9 +40,20 @@ class NewsletterClient(val restServiceConfig: RestServiceConfig, val system: Act
       httpResponse <- client.post(s"/data/subscribers", Nil, entity.withContentType(ContentTypes.`application/json`))
     } yield Response[Subscriber](httpResponse)
 
+  def subscriberUpdate(user: Subscriber)(implicit ec: ExecutionContext): Future[Response[Subscriber]] =
+    for {
+      entity <- Marshal(user).to[RequestEntity]
+      httpResponse <- client.put(s"/data/subscribers/${user.id}", Nil, entity.withContentType(ContentTypes.`application/json`))
+    } yield Response[Subscriber](httpResponse)
+
   def subscriberDelete(id: String)(implicit ec: ExecutionContext): Future[Response[NoEntity]] =
     client.delete(s"/data/subscribers/$id").map { httpResponse =>
       Response[NoEntity](httpResponse)
+    }
+
+  def subscriberList()(implicit ec: ExecutionContext): Future[Response[Subscribers]] =
+    client.get(s"/data/subscribers").map { httpResponse =>
+      Response[Subscribers](httpResponse)
     }
 
 }
