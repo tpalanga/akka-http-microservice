@@ -29,9 +29,9 @@ class SubscriberSpec extends AsyncFlatSpec with Matchers with RestSpec with News
 
     for {
       replyCreate <- subscriberCreate(newSubscriber)
+      _ = replyCreate.status shouldBe StatusCodes.Created
       subscriber <- replyCreate.entity
     } yield {
-      replyCreate.status shouldBe StatusCodes.Created
       subscriber.name shouldBe newSubscriber.name
     }
   }
@@ -41,11 +41,12 @@ class SubscriberSpec extends AsyncFlatSpec with Matchers with RestSpec with News
 
     for {
       replyCreate <- subscriberCreate(newSubscriber)
+      _ = replyCreate.status shouldBe StatusCodes.Created
       subscriber <- replyCreate.entity
       replyRetrieve <- subscriberRetrieve(subscriber.id)
+      _ = replyRetrieve.status shouldBe StatusCodes.OK
       retrievedSubscriber <- replyRetrieve.entity
     } yield {
-      replyCreate.status shouldBe StatusCodes.Created
       subscriber.name shouldBe newSubscriber.name
       retrievedSubscriber shouldBe subscriber
     }
@@ -67,9 +68,9 @@ class SubscriberSpec extends AsyncFlatSpec with Matchers with RestSpec with News
       _ = subscriberUpdated shouldBe updatingSubscriber
 
       replyRetrieve <- subscriberRetrieve(subscriber.id)
+      _ = replyRetrieve.status shouldBe StatusCodes.OK
       retrievedSubscriber <- replyRetrieve.entity
     } yield {
-      replyRetrieve.status shouldBe StatusCodes.OK
       retrievedSubscriber shouldBe updatingSubscriber
     }
   }
@@ -96,8 +97,8 @@ class SubscriberSpec extends AsyncFlatSpec with Matchers with RestSpec with News
 
     for {
       replyCreate <- subscriberCreate(newSubscriber)
-      subscriber <- replyCreate.entity
       _ = replyCreate.status shouldBe StatusCodes.Created
+      subscriber <- replyCreate.entity
       _ = subscriber.name shouldBe newSubscriber.name
       replyList <- subscriberList()
       subscriberList <- replyList.entity

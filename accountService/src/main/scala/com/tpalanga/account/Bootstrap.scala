@@ -14,13 +14,14 @@ object Bootstrap extends App {
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
 
-  private val configFile = sys.props.get("CONFIG").getOrElse("dev.conf")
+  private val configFile = sys.props.getOrElse("CONFIG", sys.env.getOrElse("CONFIG", "dev.conf"))
+  println(s"Starting with config file: $configFile")
   private val allConfig = ConfigFactory.load(s"conf/$configFile")
   val accountConfig = AccountConfig(allConfig)
   val newsletterService = system.actorOf(NewsletterService.props(accountConfig.newsletterServiceConfig))
   val userService = system.actorOf(UserService.props(newsletterService))
 
-  Http().bindAndHandle(new WebRoute(userService).route, "localhost", 8080).map { httpServerBinding =>
-    println(s"Server online at http://localhost:8080/")
+  Http().bindAndHandle(new WebRoute(userService).route, "0.0.0.0", 8080).map { httpServerBinding =>
+    println(s"Account service online at http://localhost:8080/")
   }
 }

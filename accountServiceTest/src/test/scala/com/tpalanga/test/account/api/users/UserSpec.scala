@@ -37,7 +37,7 @@ class UserSpec extends AsyncFlatSpec with Matchers with RestSpec {
     for {
       replyCreate <- account.userCreate(newUser)
       user <- replyCreate.entity
-      _ <- Future(Thread.sleep(200))
+      _ <- Future(Thread.sleep(500))
       replySubscriberRetrieve <- newsletter.subscriberRetrieve(user.id)
       _ = replySubscriberRetrieve.status shouldBe StatusCodes.OK
       subscriber <- replySubscriberRetrieve.entity
@@ -94,10 +94,13 @@ class UserSpec extends AsyncFlatSpec with Matchers with RestSpec {
       replyCreate <- account.userCreate(newUser)
       user <- replyCreate.entity
       _ = replyCreate.status shouldBe StatusCodes.Created
+      _ <- Future(Thread.sleep(500))
+      replySubscriberRetrieve <- newsletter.subscriberRetrieve(user.id)
+      _ = replySubscriberRetrieve.status shouldBe StatusCodes.OK
 
       replyDelete <- account.userDelete(user.id)
       _ = replyDelete.status shouldBe StatusCodes.OK
-      _ <- Future(Thread.sleep(200))
+      _ <- Future(Thread.sleep(500))
       replySubscriberRetrieve <- newsletter.subscriberRetrieve(user.id)
       _ = replySubscriberRetrieve.status shouldBe StatusCodes.NotFound
 
@@ -116,6 +119,7 @@ class UserSpec extends AsyncFlatSpec with Matchers with RestSpec {
       _ = replyCreate.status shouldBe StatusCodes.Created
       _ = user.name shouldBe newUser.name
       replyList <- account.userList()
+      _ = replyList.status shouldBe StatusCodes.OK
       userList <- replyList.entity
     } yield {
       user.name shouldBe newUser.name

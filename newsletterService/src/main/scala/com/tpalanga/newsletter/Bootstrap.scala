@@ -16,8 +16,8 @@ object Bootstrap extends App {
   val unhandledMessageWatcher = system.actorOf(UnhandledMessageWatcher.props())
 
   val subscriberService = system.actorOf(SubscriberService.props())
-  Http().bindAndHandle(new SubscriberRoute(subscriberService).route, "localhost", 8081).map { httpServerBinding =>
-    println(s"Dataservice online at http://localhost:8081/")
+  Http().bindAndHandle(new SubscriberRoute(subscriberService).route, "0.0.0.0", 8081).map { httpServerBinding =>
+    println(s"Newsletter service online at http://localhost:8081/")
   }
 }
 
