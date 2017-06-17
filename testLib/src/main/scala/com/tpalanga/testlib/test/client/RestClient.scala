@@ -6,11 +6,12 @@ import akka.http.scaladsl.model.HttpMethods._
 import akka.http.scaladsl.model._
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings, Materializer}
 import com.tpalanga.testlib.test.config.RestServiceConfig
+import com.typesafe.scalalogging.LazyLogging
 
 import scala.collection.immutable.Seq
 import scala.concurrent.Future
 
-class RestClient(config: RestServiceConfig)(implicit system: ActorSystem) {
+class RestClient(config: RestServiceConfig)(implicit system: ActorSystem) extends LazyLogging {
 
   private implicit val materializer: Materializer = ActorMaterializer(ActorMaterializerSettings(system))
   private val http = Http(system)
@@ -24,8 +25,12 @@ class RestClient(config: RestServiceConfig)(implicit system: ActorSystem) {
   }
 
   protected def sendRequest(httpRequest: HttpRequest): Future[HttpResponse] = {
-    //println(httpRequest)
-    http.singleRequest(httpRequest)
+    import system.dispatcher
+    logger.debug(s"Sending request: $httpRequest")
+    http.singleRequest(httpRequest).map { httpResponse =>
+      logger.debug(s"Received response: $httpResponse")
+      httpResponse
+    }
   }
 
   def get(path: String, headers: Seq[HttpHeader] = Nil): Future[HttpResponse] =

@@ -1,16 +1,20 @@
-
 lazy val coverageSettings = Seq(
   coverageExcludedPackages := ".*Bootstrap.*"
 )
 lazy val commonSettings = Seq(
   organization := "com.tpalanga",
-  version := "1.0",
+  version := "1.0-SNAPSHOT",
   scalaVersion := "2.11.8",
   scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature")
 ) ++ coverageSettings
 
-val akkaVersion = "2.4.17"
-val akkaHttpVersion = "10.0.3"
+lazy val dockerSettings = Seq(
+  dockerBaseImage := "openjdk:alpine",
+  dockerUpdateLatest in Docker := true
+)
+
+val akkaVersion = "2.4.19"
+val akkaHttpVersion = "10.0.7"
 val scalaTestVersion = "3.0.1"
 
 val commonDependencies = Seq (
@@ -19,7 +23,9 @@ val commonDependencies = Seq (
   "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-  "io.spray" %%  "spray-json" % "1.3.3"
+  "io.spray" %%  "spray-json" % "1.3.3",
+  "ch.qos.logback" % "logback-classic" % "1.1.7",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 )
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % "test",
@@ -31,9 +37,12 @@ lazy val accountService = project.
   settings(
     name := "accountService",
     commonSettings,
-    libraryDependencies ++= commonDependencies ++ testingDependencies
+    libraryDependencies ++= commonDependencies ++ testingDependencies,
+    dockerSettings,
+    dockerExposedPorts := Seq(8080)
   )
   .dependsOn(testLib)
+  .enablePlugins(JavaAppPackaging, DockerPlugin, AshScriptPlugin)
 
 lazy val accountServiceTest = project.
   settings(
@@ -41,14 +50,17 @@ lazy val accountServiceTest = project.
     commonSettings,
     libraryDependencies ++=  commonDependencies ++ testingDependencies
   )
-  .dependsOn(testLib)
+  .dependsOn(testLib % "test")
 
 lazy val newsletterService = project.
   settings(
     name := "newsletterService",
     commonSettings,
-    libraryDependencies ++= commonDependencies ++ testingDependencies
+    libraryDependencies ++= commonDependencies ++ testingDependencies,
+    dockerSettings,
+    dockerExposedPorts := Seq(8081)
   )
+  .enablePlugins(JavaAppPackaging, DockerPlugin, AshScriptPlugin)
 
 lazy val newsletterServiceTest = project.
   settings(
@@ -56,12 +68,12 @@ lazy val newsletterServiceTest = project.
     commonSettings,
     libraryDependencies ++=  commonDependencies ++ testingDependencies
   )
-  .dependsOn(testLib)
+  .dependsOn(testLib % "test")
 
 lazy val testLib = project.
   settings(
     name := "testLib",
     commonSettings,
-    libraryDependencies ++=  commonDependencies ++ testingDependencies
+    libraryDependencies ++=  commonDependencies
   )
 
