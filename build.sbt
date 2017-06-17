@@ -13,8 +13,8 @@ lazy val dockerSettings = Seq(
   dockerUpdateLatest in Docker := true
 )
 
-val akkaVersion = "2.4.17"
-val akkaHttpVersion = "10.0.3"
+val akkaVersion = "2.4.19"
+val akkaHttpVersion = "10.0.7"
 val scalaTestVersion = "3.0.1"
 
 val commonDependencies = Seq (
@@ -23,7 +23,9 @@ val commonDependencies = Seq (
   "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-  "io.spray" %%  "spray-json" % "1.3.3"
+  "io.spray" %%  "spray-json" % "1.3.3",
+  "ch.qos.logback" % "logback-classic" % "1.1.7",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0"
 )
 val testingDependencies = Seq(
   "com.typesafe.akka" %% "akka-http-testkit" % akkaHttpVersion % "test",

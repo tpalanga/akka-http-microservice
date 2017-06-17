@@ -24,11 +24,6 @@ class NewsletterClient(val restServiceConfig: RestServiceConfig, val system: Act
   private implicit val _system = system
   private implicit val materializer: Materializer = ActorMaterializer(ActorMaterializerSettings(system))
 
-  private def logResponse[T](response: Response[T]) = {
-    //println(response)
-    response
-  }
-
   def subscriberRetrieve(id: String)(implicit ec: ExecutionContext): Future[Response[Subscriber]] =
     client.get(s"/data/subscribers/$id").map { httpResponse =>
       Response[Subscriber](httpResponse)
@@ -37,12 +32,8 @@ class NewsletterClient(val restServiceConfig: RestServiceConfig, val system: Act
   def subscriberCreate(subscriber: Subscriber)(implicit ec: ExecutionContext): Future[Response[Subscriber]] =
     for {
       entity <- Marshal(subscriber).to[RequestEntity]
-      resp <- client.post(s"/data/subscribers", Nil, entity.withContentType(ContentTypes.`application/json`)).map { httpResponse =>
-        val response = Response[Subscriber](httpResponse)
-        logResponse(response)
-        response
-      }
-    } yield resp
+      httpResponse <- client.post(s"/data/subscribers", Nil, entity.withContentType(ContentTypes.`application/json`))
+    } yield Response[Subscriber](httpResponse)
 
   def subscriberDelete(id: String)(implicit ec: ExecutionContext): Future[Response[NoEntity]] =
     client.delete(s"/data/subscribers/$id").map { httpResponse =>

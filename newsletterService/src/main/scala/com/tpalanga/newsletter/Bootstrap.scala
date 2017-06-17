@@ -6,8 +6,9 @@ import akka.stream.ActorMaterializer
 import com.tpalanga.newsletter.model.SubscriberService
 import com.tpalanga.newsletter.route.SubscriberRoute
 import com.tpalanga.newsletter.util.UnhandledMessageWatcher
+import com.typesafe.scalalogging.LazyLogging
 
-object Bootstrap extends App {
+object Bootstrap extends App with LazyLogging {
 
   implicit val system = ActorSystem("newsletter-system")
   implicit val materializer = ActorMaterializer()
@@ -17,7 +18,7 @@ object Bootstrap extends App {
 
   val subscriberService = system.actorOf(SubscriberService.props())
   Http().bindAndHandle(new SubscriberRoute(subscriberService).route, "0.0.0.0", 8081).map { httpServerBinding =>
-    println(s"Newsletter service online at http://localhost:8081/")
+    logger.info(s"Newsletter service online at http://localhost:8081/")
   }
 }
 
