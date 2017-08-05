@@ -58,32 +58,59 @@ class: middle
 - Akka actors are not typed
 - Actor behaviour can mutate
 - Maintaining API contracts
+- Integration with other systems
 - Sparse testing documentation
 - What this is not
 
 ---
 
-class: middle
+class: center, middle
 
 >>>>># Project structure
-- accountService
-- newsletterService
 
+<div class="mermaid">
+graph LR;
+  subgraph Routing
+    B{POST}
+    B2{GET}
+  end
+  A["Request"]-.->B
+  subgraph Service
+    B-->C("Account<br/>Service")
+    C-->B
+    C-->D(Newsletter<br/>Service)
+  end
+  subgraph External API
+    D-->E((Newsletter<br/>Service<br/>API))
+  end
 
->>>>>- accountServiceTest
-- newsletterServiceTest
+</div>
 
+---
 
->>>>>- testLib
+class: middle
 
-
->>> https://github.com/tpalanga/akka-http-microservice
+>>>>>># Unit testing
+- Actor testing
+- Route testing
+- Code coverage
+- Composing/linking actors
 
 ---
 
 class: center, middle
+>>># Actor diagram
 
-# Unit testing
+<div class="mermaid">
+sequenceDiagram
+    Route->>User Service: AddOne(newUser)
+    activate User Service
+    User Service->>Newsletter Service: Subscribe(user)
+    User Service-->>Route: OneUser(user)
+    deactivate Newsletter Service
+
+</div>
+
 
 ---
 
@@ -158,7 +185,7 @@ class SubscriberServiceSpec extends TestKit(ActorSystem("SubscriberServiceSpec")
     expectMsg(SubscriberService.OneSubscriber(testSubscriber))
   }
 
-  it should "reply NotFound when attempting to retrieve a subscriber that does not exist" in
+  it should "reply NotFound when retrieving a subscriber that does not exist" in
       new TestWithCreatedSubscribers {
     subscriberService ! SubscriberService.GetOne("unknown")
     expectMsg(SubscriberService.NotFound("unknown"))
@@ -321,42 +348,6 @@ class UnhandledMessageWatcher extends Actor with ActorLogging {
 
 ---
 
-```scala
-object UnhandledMessageWatcherSpec {
-
-  abstract class Test(implicit system: ActorSystem) {
-    val watcher = system.actorOf(UnhandledMessageWatcher.props())
-    val logProbe = TestProbe()
-    system.eventStream.subscribe(logProbe.ref, classOf[LogEvent])
-
-    val destination = system.actorOf(Props(new Actor {
-      override def receive: Receive = {
-        case 'Handled =>
-      }
-    }))
-
-  }
-}
-
-class UnhandledMessageWatcherSpec extends TestKit(ActorSystem("UnhandledMessageWatcherSpec")) with FlatSpecLike with Matchers with ImplicitSender {
-  import UnhandledMessageWatcherSpec._
-
-  "UnhandledMessageWatcher" should "log unhandled messages" in new Test {
-    destination ! 'Unhandled
-
-    val event = logProbe.fishForMessage() {
-      case akka.event.Logging.Error(_, _, _, msg)
-          if msg.toString startsWith "UnhandledMessage:" =>
-        true
-      case _ =>
-        false
-    }
-  }
-}
-```
-
----
-
 ### Composing/linking actors - long living actors
 
 ```scala
@@ -470,18 +461,86 @@ class NewsletterServiceSpec extends TestKit(ActorSystem("NewsletterServiceSpec")
 ---
 
 class: middle
->>>>>>>#  API testing
-- reason
-- setup
-
----
-
-class: middle
->>>>># Integration testing
+>>>># API / Integration testing
 - reason
 - setup
 - Mocking/stubbing external APIs
 
+---
+
+class: center, middle
+>>># Integration test
+
+<div class="mermaid">
+sequenceDiagram
+    Test->>Account Service: Create userA
+    activate Account Service
+    Account Service-->>Newsletter Service: Subscribe(userA)
+    Account Service->>Test: userA
+    deactivate Account Service
+    Note over Test: verify userA
+    Test-->>Newsletter Service: SubscriberRetrieve(user)
+    Newsletter Service-->>Test: response
+    Note over Test: verify response
+</div>
+
+
+---
+
+### Test case
+
+```scala
+  it should "create user and subscribe to newsletter" in {
+    val newUser = createNewUser()
+
+    for {
+      replyCreate <- account.userCreate(newUser)
+      user <- replyCreate.entity
+      _ <- Future(Thread.sleep(500))
+      replySubscriberRetrieve <- newsletter.subscriberRetrieve(user.id)
+      _ = replySubscriberRetrieve.status shouldBe StatusCodes.OK
+      subscriber <- replySubscriberRetrieve.entity
+    } yield {
+      user.name shouldBe newUser.name
+      subscriber.name shouldBe user.name
+      subscriber.email shouldBe user.email
+    }
+  }
+```
+
+---
+
+### Running the test case
+```bash
+sbt -DCONFIG=ci.conf accountServiceTest/test
+```
+docker-compose.yml:
+```yaml
+services:
+  newsletterservice:
+    image: newsletterservice:latest
+    ports:
+      - "8081:8081"
+  accountservice:
+    image: accountservice:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - "CONFIG=ci.conf"
+      - "NEWSLETTER_HOST=newsletterservice"
+    links:
+      - "newsletterservice"
+```
+ci.conf
+```yaml
+service {
+  newsletter {
+    host = ${NEWSLETTER_HOST}
+    protocol = "http"
+    port = 8081
+  }
+}
+```
 ---
 
 class: middle
@@ -489,9 +548,7 @@ class: middle
 
 >>>>- Fork the project on github
   https://github.com/tpalanga/akka-http-microservice
-- Join me and contribute - PRs/feedback
-- TODO: use docker
-- TODO: Akka cluster
+- Contribute - PRs/feedback
 
 ---
 
@@ -502,7 +559,27 @@ class: center, middle
 <script src="remark-latest.min.js" type="text/javascript">
 </script>
 <script type="text/javascript">
-      var slideshow = remark.create();
-    </script>
+    var slideshow = remark.create({
+        highlightStyle: 'monokai'
+    });
+  </script>
+<script src="./mermaid.min.js"></script>
+<link rel="stylesheet" href="./mermaid.css">
+<script>
+    mermaid.initialize({
+        startOnLoad: false,
+        cloneCssStyles: false
+    });
+    slideshow.on('afterShowSlide', function(s) {
+        var diagrams = document.querySelectorAll('.mermaid');
+        var i;
+        for(i=0;i<diagrams.length;i++){
+            if(diagrams[i].offsetWidth>0){
+                mermaid.init(undefined, diagrams[i]);
+            }
+        }
+    });
+
+</script>
 </body>
 </html>
