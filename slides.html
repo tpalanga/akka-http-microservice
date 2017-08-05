@@ -510,6 +510,39 @@ sequenceDiagram
 
 ---
 
+### Running the test case
+```bash
+sbt -DCONFIG=ci.conf accountServiceTest/test
+```
+docker-compose.yml:
+```yaml
+services:
+  newsletterservice:
+    image: newsletterservice:latest
+    ports:
+      - "8081:8081"
+  accountservice:
+    image: accountservice:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - "CONFIG=ci.conf"
+      - "NEWSLETTER_HOST=newsletterservice"
+    links:
+      - "newsletterservice"
+```
+ci.conf
+```yaml
+service {
+  newsletter {
+    host = ${NEWSLETTER_HOST}
+    protocol = "http"
+    port = 8081
+  }
+}
+```
+---
+
 class: middle
 >>>>>># What next?
 
