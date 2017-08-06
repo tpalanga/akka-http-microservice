@@ -2,7 +2,9 @@
 
 This is a project supporting my presentation on various methods of testing Akka-HTTP microservices.
 
-Slides: slides.html
+Slides: 
+ - slides-akka-microservice-testing.html
+ - slides-docker-integration-testing.html
 
 Video: https://skillsmatter.com/skillscasts/9640-london-scala-february-meetup
 
