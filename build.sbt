@@ -1,3 +1,5 @@
+scalaVersion := "2.11.8"
+
 lazy val coverageSettings = Seq(
   coverageExcludedPackages := ".*Bootstrap.*"
 )

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Testing microservices built with Akka HTTP and Akka actors</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      @import url(https://fonts.googleapis.com/css?family=Yanone+Kaffeesatz);
+      @import url(https://fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700,400italic);
+      body { font-family: 'Droid Serif'; }
+      h1, h2, h3 {
+        font-family: 'Yanone Kaffeesatz';
+        font-weight: normal;
+      }
+      .remark-code, .remark-inline-code { font-family: 'Ubuntu Mono'; }
+    </style>
+</head>
+<body>
+<textarea id="source">
+class: center, middle
+
+# Microservices integration testing
+### made simple with Docker
+
+---
+
+class: middle
+
+>>>>>># Introduction
+
+>>- Software Consultant based in London
+- Building software for over 15 years
+- Fullstack, lately more backend
+- Started with Scala a bit over 3 years ago
+- Currently at Hotels.com in the SEM-Tools team
+- Twitter: @TudorPalanga
+- Github: https://github.com/tpalanga
+- Linkedin: https://www.linkedin.com/in/tudorpalanga/
+
+---
+
+class: middle, center
+
+>>># Multiservices architecture
+
+---
+
+class: middle
+
+>>>># Multiservices vs monolith
+
+  >>>>Advantages
+  - separate reusable components - multiple apps can benefit
+  - allows granular scaling of bottleneck areas
+  - scale work to multiple teams
+  - use different technologies
+
+  >>>>Challenges
+  - not cross compiled
+  - evolution of individual services can break contracts
+
+---
+
+class: middle
+
+>>>># Integration testing
+  - Given services S1 ... Sn
+  - Setup a test environment
+  - Populate components with test data
+  - Write a bunch of tests verifying interaction
+  - Run tests against the test environment
+  - Repeat until done/satisfactory
+
+---
+
+class: center, middle
+
+>>>>># Concrete example
+
+<div class="mermaid">
+graph LR;
+  A{User}-.->B(Website<br/>UI)
+  B-->C(Account<br/>Service)
+  C-->D(Newsletter<br/>Service)
+</div>
+
+---
+
+class: center, middle
+>>># Integration test
+
+<div class="mermaid">
+sequenceDiagram
+    Test->>Account Service: Create userA
+    activate Account Service
+    Account Service-->>Newsletter Service: Subscribe(userA)
+    Account Service->>Test: userA
+    deactivate Account Service
+    Note over Test: verify userA
+    Test-->>Newsletter Service: SubscriberRetrieve(user)
+    Newsletter Service-->>Test: response
+    Note over Test: verify response
+</div>
+
+---
+
+class: middle
+>>>>>>> # Test setup
+
+>>>>### What do we need?
+- deploy Newsletter service
+- deploy MariaDB dependency (for accounts)
+- deploy Account service
+- inject test accounts/subscriptions
+- configure the services
+
+---
+
+class: middle
+
+>>>>>>> # Test setup
+
+>>>>### Docker is your friend
+- encapsulate your apps in lightweight isolated containers
+- guarantees that software will always run the same
+- automated setup and configuration of development environments
+- easy to scale and deploy
+
+---
+
+>>>>># sbt-native-plugin
+
+### plugins.sbt
+```scala
+addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.1.6")
+```
+
+### build.sbt
+```scala
+lazy val dockerSettings = Seq(
+  dockerBaseImage := "openjdk:alpine",
+  dockerUpdateLatest in Docker := true
+)
+
+lazy val accountService = project.
+  settings(
+    name := "accountService",
+    commonSettings,
+    libraryDependencies ++= commonDependencies ++ testingDependencies,
+    dockerSettings,
+    dockerExposedPorts := Seq(8080)
+  )
+  .dependsOn(testLib)
+  .enablePlugins(JavaAppPackaging, DockerPlugin, AshScriptPlugin)
+
+```
+
+---
+
+>>>>> # Build Docker images
+
+### One command
+```bash
+sbt docker:publishLocal
+```
+
+### Generated Dockerfile
+```dockerfile
+FROM openjdk:alpine
+WORKDIR /opt/docker
+ADD opt /opt
+RUN ["chown", "-R", "daemon:daemon", "."]
+EXPOSE 8080
+USER daemon
+ENTRYPOINT ["bin/accountservice"]
+CMD []
+```
+
+---
+
+>>>> # Running Docker images
+
+### docker-compose.yml
+```yaml
+services:
+  newsletterservice:
+    image: newsletterservice:latest
+    ports:
+      - "8081:8081"
+  account_db:
+    image: mariadb:latest
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD="yes"
+    volumes:
+      - ./accountService/src/main/resources/db_init/:/docker-entrypoint-initdb.d
+  accountservice:
+    image: accountservice:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - "CONFIG=ci.conf"
+      - "DB_HOST=account_db"
+      - "NEWSLETTER_HOST=newsletterservice"
+    links:
+      - "account_db"
+      - "newsletterservice"
+```
+
+---
+
+>>>> # Run the integration tests
+
+### Spin up the services
+```bash
+docker-compose -f docker-compose.yml up -d
+```
+
+### Run the tests
+```bash
+sbt -DDOCKER_IP=192.168.99.100 -DCONFIG=ci.conf newsletterServiceTest/test
+```
+
+---
+
+>>>> # Run the integration tests
+
+### ci.conf
+```yaml
+test {
+  remote {
+    service {
+      account {
+        host = ${DOCKER_IP}
+        protocol = "http"
+        port = 8080
+      }
+      newsletter {
+        host = ${DOCKER_IP}
+        protocol = "http"
+        port = 8081
+      }
+    }
+  }
+}
+```
+
+
+---
+
+class: middle
+>>>>>>># Code/slides
+
+>>> https://github.com/tpalanga/akka-http-microservice
+
+---
+
+class: center, middle
+# Questions?
+
+</textarea>
+<script src="remark-latest.min.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+    var slideshow = remark.create({
+        highlightStyle: 'monokai'
+    });
+  </script>
+<script src="./mermaid.min.js"></script>
+<link rel="stylesheet" href="./mermaid.css">
+<script>
+    mermaid.initialize({
+        startOnLoad: false,
+        cloneCssStyles: false
+    });
+    slideshow.on('afterShowSlide', function(s) {
+        var diagrams = document.querySelectorAll('.mermaid');
+        var i;
+        for(i=0;i<diagrams.length;i++){
+            if(diagrams[i].offsetWidth>0){
+                mermaid.init(undefined, diagrams[i]);
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
